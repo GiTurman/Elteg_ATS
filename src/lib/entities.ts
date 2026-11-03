@@ -33,6 +33,11 @@ export type Client = {
   is_active: boolean;
   notes: string | null;
   created_at: string;
+  monthly_fee: number | null;
+  currency: string | null;
+  included_calls: number | null;
+  device_count: string | null;
+  service_note: string | null;
 };
 
 export type Team = {

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { AlertTriangle, CalendarClock, PhoneCall, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarClock, PhoneCall, PhoneMissed, Wrench } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { PriorityBadge, SlaBadge, StatusBadge } from "@/components/badges";
@@ -14,13 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCurrentUser } from "@/hooks/useAuth";
-import {
-  formatDateTime,
-  isOpen,
-  isSameDay,
-  slaState,
-  type ServiceCall,
-} from "@/lib/domain";
+import { formatDateTime, isOpen, isSameDay, slaState, type ServiceCall } from "@/lib/domain";
+import { pendingCallbacksQuery } from "@/lib/callcenter";
 import { callsQuery, objectsQuery, staffQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -72,10 +67,12 @@ function DashboardPage() {
   const { data: calls = [] } = useQuery(callsQuery);
   const { data: objects = [] } = useQuery(objectsQuery);
   const { data: staff = [] } = useQuery(staffQuery);
+  const { data: pendingCallbacks = [] } = useQuery({
+    ...pendingCallbacksQuery,
+    enabled: !isTechnician,
+  });
 
-  const mine: ServiceCall[] = isTechnician
-    ? calls.filter((c) => c.assigned_to === userId)
-    : calls;
+  const mine: ServiceCall[] = isTechnician ? calls.filter((c) => c.assigned_to === userId) : calls;
 
   const open = mine.filter((c) => isOpen(c.status));
   const today = mine.filter(
@@ -85,26 +82,21 @@ function DashboardPage() {
     const s = slaState(c);
     return s === "warning" || s === "breached";
   });
-  const overdue = objects.filter(
-    (o) => o.next_due_date && new Date(o.next_due_date) < new Date(),
-  );
+  const overdue = objects.filter((o) => o.next_due_date && new Date(o.next_due_date) < new Date());
 
   const recent = mine.slice(0, 8);
-  const nameOf = (id: string | null) =>
-    staff.find((s) => s.id === id)?.full_name ?? "—";
+  const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.full_name ?? "—";
 
   return (
     <AppShell
       title={`მოგესალმებით, ${profile?.full_name || "მომხმარებელო"}`}
       subtitle={`როლი: ${role === "manager" ? "მენეჯერი" : role === "dispatcher" ? "დისპეჩერი" : "ტექნიკოსი"}`}
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        className={`grid gap-3 sm:grid-cols-2 ${isTechnician ? "xl:grid-cols-4" : "xl:grid-cols-5"}`}
+      >
         <StatCard label="ღია გამოძახებები" value={open.length} icon={PhoneCall} />
-        <StatCard
-          label="დღეს დაგეგმილი"
-          value={today.length}
-          icon={CalendarClock}
-        />
+        <StatCard label="დღეს დაგეგმილი" value={today.length} icon={CalendarClock} />
         <StatCard
           label="SLA რისკის ქვეშ"
           value={atRisk.length}
@@ -117,16 +109,26 @@ function DashboardPage() {
           icon={Wrench}
           tone="warning"
         />
+        {!isTechnician ? (
+          <a
+            href="/call-history#callbacks"
+            className="block rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <StatCard
+              label="გამოტოვებული — დასარეკი"
+              value={pendingCallbacks.length}
+              icon={PhoneMissed}
+              tone={pendingCallbacks.length ? "danger" : "default"}
+            />
+          </a>
+        ) : null}
       </div>
 
       <Card className="mt-4">
         <CardContent className="p-0">
           <div className="flex items-center justify-between border-b px-4 py-3">
             <h2 className="text-sm font-semibold">ბოლო გამოძახებები</h2>
-            <Link
-              to="/calls"
-              className="text-xs font-medium text-primary hover:underline"
-            >
+            <Link to="/calls" className="text-xs font-medium text-primary hover:underline">
               ყველას ნახვა
             </Link>
           </div>
@@ -140,12 +142,8 @@ function DashboardPage() {
                   <TableHead>პრიორიტეტი</TableHead>
                   <TableHead>სტატუსი</TableHead>
                   <TableHead>SLA</TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    ტექნიკოსი
-                  </TableHead>
-                  <TableHead className="hidden lg:table-cell">
-                    მიღების დრო
-                  </TableHead>
+                  <TableHead className="hidden lg:table-cell">ტექნიკოსი</TableHead>
+                  <TableHead className="hidden lg:table-cell">მიღების დრო</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -158,16 +156,10 @@ function DashboardPage() {
                         : undefined
                     }
                   >
-                    <TableCell className="font-mono text-xs">
-                      {c.call_no}
-                    </TableCell>
+                    <TableCell className="font-mono text-xs">{c.call_no}</TableCell>
                     <TableCell className="max-w-[220px]">
-                      <div className="truncate text-sm font-medium">
-                        {c.site_name}
-                      </div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {c.address}
-                      </div>
+                      <div className="truncate text-sm font-medium">{c.site_name}</div>
+                      <div className="truncate text-xs text-muted-foreground">{c.address}</div>
                     </TableCell>
                     <TableCell className="hidden font-mono text-xs md:table-cell">
                       {c.elevator_code}

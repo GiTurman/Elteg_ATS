@@ -30,6 +30,7 @@ import {
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { clientsQuery } from "@/lib/entities";
+import { staffQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/telephony")({
   head: () => ({
@@ -46,6 +47,7 @@ export const Route = createFileRoute("/_authenticated/telephony")({
 
 const PUBLISHED_ORIGIN = "https://liftdispelteg.lovable.app";
 const WEBHOOK_PATH = "/api/public/telephony/webhook";
+const ON_DUTY_PATH = "/api/public/telephony/on-duty";
 
 const settingsQuery = {
   queryKey: ["telephony_settings"],
@@ -101,18 +103,45 @@ const SAMPLE_PAYLOAD = `{
 }`;
 
 const FIELDS: { name: string; desc: string }[] = [
-  { name: "event", desc: "მოვლენა (სავალდებულო): call_started — ზარი შემოვიდა; call_answered — ოპერატორმა უპასუხა; call_ended — ზარი დასრულდა; recording_ready — ჩანაწერი მზადაა." },
-  { name: "call_id", desc: "ზარის უნიკალური იდენტიფიკატორი სადგურში (სავალდებულო). ყველა მოვლენა ერთი ზარისთვის ერთი და იგივე უნდა იყოს." },
-  { name: "direction", desc: "მიმართულება: inbound (შემომავალი), outbound (გამავალი), internal (შიდა). ნაგულისხმევი — inbound." },
-  { name: "from", desc: "დამრეკის ნომერი ნებისმიერ ფორმატში (+995…, 0…, 5…). ავტომატურად ნორმალიზდება ბოლო 9 ციფრამდე." },
+  {
+    name: "event",
+    desc: "მოვლენა (სავალდებულო): call_started — ზარი შემოვიდა; call_answered — ოპერატორმა უპასუხა; call_ended — ზარი დასრულდა; recording_ready — ჩანაწერი მზადაა.",
+  },
+  {
+    name: "call_id",
+    desc: "ზარის უნიკალური იდენტიფიკატორი სადგურში (სავალდებულო). ყველა მოვლენა ერთი ზარისთვის ერთი და იგივე უნდა იყოს.",
+  },
+  {
+    name: "direction",
+    desc: "მიმართულება: inbound (შემომავალი), outbound (გამავალი), internal (შიდა). ნაგულისხმევი — inbound.",
+  },
+  {
+    name: "from",
+    desc: "დამრეკის ნომერი ნებისმიერ ფორმატში (+995…, 0…, 5…). ავტომატურად ნორმალიზდება ბოლო 9 ციფრამდე.",
+  },
   { name: "to", desc: "ნომერი, რომელზეც დარეკეს (ჩვენი ხაზი)." },
   { name: "queue", desc: "რიგის / ჯგუფის დასახელება." },
-  { name: "extension", desc: "ოპერატორის შიდა ნომერი — მომხმარებლის პროფილის „შიდა ნომერთან“ დასაკავშირებლად." },
-  { name: "timestamp", desc: "მოვლენის დრო ISO 8601 ფორმატში. თუ არ არის — გამოიყენება მიღების დრო." },
-  { name: "duration", desc: "წამებში. call_ended-ზე: ნაპასუხები ზარისთვის — საუბრის ხანგრძლივობა, უპასუხოსთვის — ლოდინის ხანგრძლივობა." },
-  { name: "status", desc: "call_ended-ზე (არასავალდებულო): answered, missed, abandoned, voicemail." },
+  {
+    name: "extension",
+    desc: "ოპერატორის შიდა ნომერი — მომხმარებლის პროფილის „შიდა ნომერთან“ დასაკავშირებლად.",
+  },
+  {
+    name: "timestamp",
+    desc: "მოვლენის დრო ISO 8601 ფორმატში. თუ არ არის — გამოიყენება მიღების დრო.",
+  },
+  {
+    name: "duration",
+    desc: "წამებში. call_ended-ზე: ნაპასუხები ზარისთვის — საუბრის ხანგრძლივობა, უპასუხოსთვის — ლოდინის ხანგრძლივობა.",
+  },
+  {
+    name: "status",
+    desc: "call_ended-ზე (არასავალდებულო): answered, missed, abandoned, voicemail.",
+  },
   { name: "recording_url", desc: "ჩანაწერის ბმული (recording_ready-ზე ან call_ended-ზე)." },
-  { name: "is_test", desc: "true — სატესტო ზარი: არ ჩაითვლება სტატისტიკაში და არ მოითხოვს გადარეკვას." },
+  {
+    name: "is_test",
+    desc: "true — სატესტო ზარი: არ ჩაითვლება სტატისტიკაში და არ მოითხოვს გადარეკვას.",
+  },
 ];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -195,14 +224,22 @@ function TelephonyPage() {
               <Label>ვებჰუკის მისამართი (POST)</Label>
               <div className="flex gap-2">
                 <Input readOnly value={webhookUrl} className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={() => copy(webhookUrl, "მისამართი")} aria-label="მისამართის კოპირება">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copy(webhookUrl, "მისამართი")}
+                  aria-label="მისამართის კოპირება"
+                >
                   <Copy className="size-4" />
                 </Button>
               </div>
               {origin && origin !== PUBLISHED_ORIGIN ? (
                 <p className="text-xs text-muted-foreground">
                   სადგურს მიაწოდეთ გამოქვეყნებული მისამართი:{" "}
-                  <span className="font-mono">{PUBLISHED_ORIGIN}{WEBHOOK_PATH}</span>
+                  <span className="font-mono">
+                    {PUBLISHED_ORIGIN}
+                    {WEBHOOK_PATH}
+                  </span>
                 </p>
               ) : null}
             </div>
@@ -211,16 +248,27 @@ function TelephonyPage() {
               <Label>ტოკენი</Label>
               <div className="flex gap-2">
                 <Input readOnly value={showToken ? token : masked} className="font-mono text-xs" />
-                <Button variant="outline" size="icon" onClick={() => setShowToken((s) => !s)} aria-label={showToken ? "დამალვა" : "ჩვენება"}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowToken((s) => !s)}
+                  aria-label={showToken ? "დამალვა" : "ჩვენება"}
+                >
                   {showToken ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </Button>
-                <Button variant="outline" size="icon" onClick={() => copy(token, "ტოკენი")} disabled={!token} aria-label="ტოკენის კოპირება">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copy(token, "ტოკენი")}
+                  disabled={!token}
+                  aria-label="ტოკენის კოპირება"
+                >
                   <Copy className="size-4" />
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                გადაეცით ჰედერში <span className="font-mono">X-Webhook-Token</span> ან
-                პარამეტრად <span className="font-mono">?token=</span>
+                გადაეცით ჰედერში <span className="font-mono">X-Webhook-Token</span> ან პარამეტრად{" "}
+                <span className="font-mono">?token=</span>
               </p>
               <div>
                 <Button variant="outline" size="sm" onClick={() => setConfirmRotate(true)}>
@@ -232,7 +280,13 @@ function TelephonyPage() {
             <div className="grid gap-1.5">
               <Label>პასუხის SLA (წამი)</Label>
               <div className="flex gap-2 sm:max-w-xs">
-                <Input type="number" min={1} max={600} value={sla} onChange={(e) => setSla(e.target.value)} />
+                <Input
+                  type="number"
+                  min={1}
+                  max={600}
+                  value={sla}
+                  onChange={(e) => setSla(e.target.value)}
+                />
                 <Button onClick={() => saveSla.mutate()} disabled={saveSla.isPending}>
                   შენახვა
                 </Button>
@@ -246,16 +300,46 @@ function TelephonyPage() {
 
         <Simulator webhookUrl={webhookUrl} token={token} clients={clients} />
 
+        <OperatorsCard />
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">მორიგეობის API (გადამისამართებისთვის)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-xs text-muted-foreground">
+            <p>
+              სადგურს შეუძლია ყოველი ზარის წინ ან პერიოდულად გამოითხოვოს, ვინ არის ახლა მორიგე
+              „ცვლების“ გრაფიკის მიხედვით, და ზარი იმ რიგით გადაამისამართოს: ოპერატორი →
+              ხელმძღვანელი → მორიგე ტექნიკოსის მობილური.
+            </p>
+            <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-[11px] text-foreground">{`GET ${(origin || PUBLISHED_ORIGIN) + ON_DUTY_PATH}?token=<ტოკენი>
+
+{ "ok": true,
+  "routing": [
+    { "duty_role": "operator", "name": "…", "target": "101", "target_type": "extension" },
+    { "duty_role": "supervisor", "name": "…", "target": "102", "target_type": "extension" },
+    { "duty_role": "oncall_technician", "name": "…", "target": "+995599…", "target_type": "mobile" }
+  ],
+  "operators_on_duty": 1 }`}</pre>
+            <p>
+              თუ <span className="font-mono">routing</span> ცარიელია — გრაფიკში ამ დროს არავინ
+              წერია; სადგურში დააყენეთ სარეზერვო ნომერი.
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="xl:col-span-2">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">დოკუმენტაცია სატელეფონო სისტემის მომწოდებლისთვის</CardTitle>
+            <CardTitle className="text-sm">
+              დოკუმენტაცია სატელეფონო სისტემის მომწოდებლისთვის
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 lg:grid-cols-2">
             <div className="space-y-3 text-sm">
               <p className="text-muted-foreground">
                 სადგურმა თითოეულ მოვლენაზე უნდა გამოგზავნოს JSON მოთხოვნა (POST, Content-Type:
-                application/json) ზემოთ მითითებულ მისამართზე. მოვლენები შეიძლება მოვიდეს
-                ნებისმიერი თანმიმდევრობით და განმეორებით — სისტემა ზარს აერთიანებს{" "}
+                application/json) ზემოთ მითითებულ მისამართზე. მოვლენები შეიძლება მოვიდეს ნებისმიერი
+                თანმიმდევრობით და განმეორებით — სისტემა ზარს აერთიანებს{" "}
                 <span className="font-mono">call_id</span>-ით. უცნობი ველები იგნორირდება.
               </p>
               <dl className="space-y-2">
@@ -272,7 +356,9 @@ function TelephonyPage() {
               </p>
             </div>
             <div className="space-y-3">
-              <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs">{SAMPLE_PAYLOAD}</pre>
+              <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs">
+                {SAMPLE_PAYLOAD}
+              </pre>
               <pre className="overflow-x-auto rounded-md border bg-muted p-3 font-mono text-xs">{`curl -X POST "${webhookUrl || PUBLISHED_ORIGIN + WEBHOOK_PATH}" \\
   -H "Content-Type: application/json" \\
   -H "X-Webhook-Token: <ტოკენი>" \\
@@ -287,8 +373,8 @@ function TelephonyPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>ტოკენის განახლება</AlertDialogTitle>
             <AlertDialogDescription>
-              ძველი ტოკენი მაშინვე შეწყვეტს მუშაობას. სატელეფონო სადგურში ახალი ტოკენის
-              ჩაწერამდე ზარები არ აისახება სისტემაში.
+              ძველი ტოკენი მაშინვე შეწყვეტს მუშაობას. სატელეფონო სადგურში ახალი ტოკენის ჩაწერამდე
+              ზარები არ აისახება სისტემაში.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -318,7 +404,12 @@ function Simulator({
 }: {
   webhookUrl: string;
   token: string;
-  clients: { id: string; name: string; cabin_phone: string | null; contact_phone_2: string | null }[];
+  clients: {
+    id: string;
+    name: string;
+    cabin_phone: string | null;
+    contact_phone_2: string | null;
+  }[];
 }) {
   const [from, setFrom] = useState("+995599123456");
   const [extension, setExtension] = useState("101");
@@ -330,8 +421,18 @@ function Simulator({
   const phoneOptions = useMemo(() => {
     const opts: { value: string; label: string; cabin: boolean }[] = [];
     for (const c of clients) {
-      if (c.cabin_phone) opts.push({ value: c.cabin_phone, label: `${c.name} — კაბინა: ${c.cabin_phone}`, cabin: true });
-      if (c.contact_phone_2) opts.push({ value: c.contact_phone_2, label: `${c.name} — ნომერი 2: ${c.contact_phone_2}`, cabin: false });
+      if (c.cabin_phone)
+        opts.push({
+          value: c.cabin_phone,
+          label: `${c.name} — კაბინა: ${c.cabin_phone}`,
+          cabin: true,
+        });
+      if (c.contact_phone_2)
+        opts.push({
+          value: c.contact_phone_2,
+          label: `${c.name} — ნომერი 2: ${c.contact_phone_2}`,
+          cabin: false,
+        });
     }
     return opts;
   }, [clients]);
@@ -364,26 +465,63 @@ function Simulator({
     setLog([]);
     setResultId(null);
     const callId = `sim-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const wait = scenario === "cabin" ? 5 : scenario === "missed" ? 30 : scenario === "abandoned" ? 18 : 12;
+    const wait =
+      scenario === "cabin" ? 5 : scenario === "missed" ? 30 : scenario === "abandoned" ? 18 : 12;
     const talk = scenario === "cabin" ? 60 : 95;
     const answered = scenario === "answered" || scenario === "cabin" || scenario === "test";
     const total = answered ? wait + talk : wait;
     const base = Date.now() - (total + 5) * 1000;
     const at = (s: number) => new Date(base + s * 1000).toISOString();
     const isTest = scenario === "test";
-    const common = { call_id: callId, direction: "inbound", from, to: "0322000000", queue: "hotline", ...(isTest ? { is_test: true } : {}) };
+    const common = {
+      call_id: callId,
+      direction: "inbound",
+      from,
+      to: "0322000000",
+      queue: "hotline",
+      ...(isTest ? { is_test: true } : {}),
+    };
 
     const events: { step: string; body: Record<string, unknown> }[] = [
       { step: "call_started", body: { ...common, event: "call_started", timestamp: at(0) } },
     ];
     if (answered) {
-      events.push({ step: "call_answered", body: { ...common, event: "call_answered", extension, timestamp: at(wait) } });
-      events.push({ step: "call_ended", body: { ...common, event: "call_ended", extension, status: "answered", duration: talk, timestamp: at(wait + talk) } });
+      events.push({
+        step: "call_answered",
+        body: { ...common, event: "call_answered", extension, timestamp: at(wait) },
+      });
+      events.push({
+        step: "call_ended",
+        body: {
+          ...common,
+          event: "call_ended",
+          extension,
+          status: "answered",
+          duration: talk,
+          timestamp: at(wait + talk),
+        },
+      });
       if (!isTest) {
-        events.push({ step: "recording_ready", body: { call_id: callId, event: "recording_ready", recording_url: `https://pbx.example.com/rec/${callId}.mp3` } });
+        events.push({
+          step: "recording_ready",
+          body: {
+            call_id: callId,
+            event: "recording_ready",
+            recording_url: `https://pbx.example.com/rec/${callId}.mp3`,
+          },
+        });
       }
     } else {
-      events.push({ step: "call_ended", body: { ...common, event: "call_ended", status: scenario, duration: wait, timestamp: at(wait) } });
+      events.push({
+        step: "call_ended",
+        body: {
+          ...common,
+          event: "call_ended",
+          status: scenario,
+          duration: wait,
+          timestamp: at(wait),
+        },
+      });
     }
 
     let lastId: string | null = null;
@@ -397,7 +535,10 @@ function Simulator({
         });
         const body = await res.json().catch(() => ({}));
         if (body?.call_log_id) lastId = body.call_log_id;
-        setLog((l) => [...l, { step: e.step, ok: res.ok, detail: `${res.status} ${JSON.stringify(body)}` }]);
+        setLog((l) => [
+          ...l,
+          { step: e.step, ok: res.ok, detail: `${res.status} ${JSON.stringify(body)}` },
+        ]);
         if (!res.ok) break;
       }
       setResultId(lastId);
@@ -417,12 +558,15 @@ function Simulator({
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          აგზავნის ნამდვილ მოვლენებს ვებჰუკზე ნამდვილი ტოკენით — ასე მთელი ჯაჭვი მოწმდება
-          სადგურის გარეშე. შემომავალი ზარი გამოჩნდება „ცხელ ხაზზე“.
+          აგზავნის ნამდვილ მოვლენებს ვებჰუკზე ნამდვილი ტოკენით — ასე მთელი ჯაჭვი მოწმდება სადგურის
+          გარეშე. შემომავალი ზარი გამოჩნდება „ცხელ ხაზზე“.
         </p>
         <div className="grid gap-1.5">
           <Label>დამრეკის ნომერი</Label>
-          <Select value={phoneOptions.some((o) => o.value === from) ? from : ""} onValueChange={setFrom}>
+          <Select
+            value={phoneOptions.some((o) => o.value === from) ? from : ""}
+            onValueChange={setFrom}
+          >
             <SelectTrigger>
               <SelectValue placeholder="აირჩიეთ კლიენტის ნომერი" />
             </SelectTrigger>
@@ -434,12 +578,21 @@ function Simulator({
               ))}
             </SelectContent>
           </Select>
-          <Input value={from} onChange={(e) => setFrom(e.target.value)} placeholder="ან ჩაწერეთ ნომერი" className="font-mono" />
+          <Input
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            placeholder="ან ჩაწერეთ ნომერი"
+            className="font-mono"
+          />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="grid gap-1.5">
             <Label>ოპერატორის შიდა ნომერი</Label>
-            <Input value={extension} onChange={(e) => setExtension(e.target.value)} className="font-mono" />
+            <Input
+              value={extension}
+              onChange={(e) => setExtension(e.target.value)}
+              className="font-mono"
+            />
           </div>
           <div className="grid gap-1.5">
             <Label>სცენარი</Label>
@@ -466,7 +619,9 @@ function Simulator({
           <div className="space-y-1 rounded-md border bg-muted/50 p-2">
             {log.map((l, i) => (
               <div key={i} className="flex gap-2 font-mono text-[11px]">
-                <span className={l.ok ? "text-primary" : "text-destructive"}>{l.ok ? "✓" : "✗"}</span>
+                <span className={l.ok ? "text-primary" : "text-destructive"}>
+                  {l.ok ? "✓" : "✗"}
+                </span>
                 <span className="w-28 shrink-0">{l.step}</span>
                 <span className="truncate text-muted-foreground">{l.detail}</span>
               </div>
@@ -477,17 +632,120 @@ function Simulator({
         {result ? (
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border p-3 text-xs">
             <span className="text-muted-foreground">სტატუსი</span>
-            <span><Badge variant="secondary">{callStatusLabel[result.status] ?? result.status}</Badge></span>
+            <span>
+              <Badge variant="secondary">{callStatusLabel[result.status] ?? result.status}</Badge>
+            </span>
             <span className="text-muted-foreground">კლიენტი</span>
-            <span>{clientName ?? "ვერ მოიძებნა"}{result.is_cabin_call ? " · 🚨 კაბინა" : ""}</span>
+            <span>
+              {clientName ?? "ვერ მოიძებნა"}
+              {result.is_cabin_call ? " · 🚨 კაბინა" : ""}
+            </span>
             <span className="text-muted-foreground">ლოდინი / საუბარი</span>
-            <span className="tabular-nums">{result.wait_seconds ?? "—"} წმ / {result.talk_seconds ?? "—"} წმ</span>
+            <span className="tabular-nums">
+              {result.wait_seconds ?? "—"} წმ / {result.talk_seconds ?? "—"} წმ
+            </span>
             <span className="text-muted-foreground">გადარეკვა</span>
             <span>{callbackLabel[result.callback_status] ?? result.callback_status}</span>
             <span className="text-muted-foreground">ოპერატორი</span>
-            <span>{result.agent_profile_id ? "დაკავშირებულია" : `შიდა ${result.agent_extension ?? "—"} (პროფილი ვერ მოიძებნა)`}</span>
+            <span>
+              {result.agent_profile_id
+                ? "დაკავშირებულია"
+                : `შიდა ${result.agent_extension ?? "—"} (პროფილი ვერ მოიძებნა)`}
+            </span>
           </div>
         ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function OperatorsCard() {
+  const queryClient = useQueryClient();
+  const { data: staff = [] } = useQuery(staffQuery);
+  const [draft, setDraft] = useState<Record<string, { extension: string; phone: string }>>({});
+
+  useEffect(() => {
+    setDraft(
+      Object.fromEntries(
+        staff.map((s) => [s.id, { extension: s.extension ?? "", phone: s.phone ?? "" }]),
+      ),
+    );
+  }, [staff]);
+
+  const save = useMutation({
+    mutationFn: async (id: string) => {
+      const d = draft[id];
+      if (!d) return;
+      const ext = d.extension.trim();
+      if (ext && !/^[0-9*#]{1,10}$/.test(ext))
+        throw new Error("შიდა ნომერი უნდა შედგებოდეს მხოლოდ ციფრებისგან");
+      const { error } = await supabase.rpc("set_operator_contact", {
+        _profile_id: id,
+        _extension: ext,
+        _phone: d.phone.trim(),
+      });
+      if (error) {
+        if (error.code === "23505")
+          throw new Error(`შიდა ნომერი ${ext} უკვე სხვა თანამშრომელს აქვს`);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      toast.success("შენახულია");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">ოპერატორები — შიდა ნომრები და მობილურები</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          შიდა ნომერი (extension) უნდა ემთხვეოდეს სადგურში მითითებულს — ამით ზარი უკავშირდება
+          ოპერატორს. მობილური გამოიყენება მორიგე ტექნიკოსზე გადამისამართებისთვის.
+        </p>
+        {staff.map((s) => {
+          const d = draft[s.id] ?? { extension: "", phone: "" };
+          const changed = d.extension !== (s.extension ?? "") || d.phone !== (s.phone ?? "");
+          return (
+            <div key={s.id} className="grid grid-cols-[1fr_80px_130px_auto] items-center gap-2">
+              <div className="min-w-0">
+                <div className="truncate text-xs font-medium">{s.full_name || s.email}</div>
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {s.roles.join(", ") || "როლის გარეშე"}
+                </div>
+              </div>
+              <Input
+                className="h-8 font-mono text-xs"
+                placeholder="101"
+                value={d.extension}
+                onChange={(e) =>
+                  setDraft((x) => ({ ...x, [s.id]: { ...d, extension: e.target.value } }))
+                }
+              />
+              <Input
+                className="h-8 font-mono text-xs"
+                placeholder="+995 5xx xx xx xx"
+                value={d.phone}
+                onChange={(e) =>
+                  setDraft((x) => ({ ...x, [s.id]: { ...d, phone: e.target.value } }))
+                }
+              />
+              <Button
+                size="sm"
+                variant={changed ? "default" : "outline"}
+                disabled={!changed || save.isPending}
+                onClick={() => save.mutate(s.id)}
+              >
+                შენახვა
+              </Button>
+            </div>
+          );
+        })}
       </CardContent>
     </Card>
   );

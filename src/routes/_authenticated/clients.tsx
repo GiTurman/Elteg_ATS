@@ -52,6 +52,8 @@ const empty = {
   email: "",
   address: "",
   package_id: "",
+  monthly_fee: "",
+  currency: "GEL",
 };
 
 function ClientsPage() {
@@ -89,6 +91,8 @@ function ClientsPage() {
         email: form.email || null,
         address: form.address || null,
         package_id: form.package_id || null,
+        monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : null,
+        currency: form.currency || null,
       });
       if (error) throw error;
     },
@@ -129,9 +133,10 @@ function ClientsPage() {
             <TableRow>
               <TableHead>დასახელება</TableHead>
               <TableHead>ნომერი 1 (კაბინა)</TableHead>
-              <TableHead className="hidden md:table-cell">ნომერი 2</TableHead>
-              <TableHead className="hidden lg:table-cell">საკონტაქტო პირი</TableHead>
-              <TableHead>პაკეტი</TableHead>
+              <TableHead className="hidden xl:table-cell">ნომერი 2</TableHead>
+              <TableHead className="hidden lg:table-cell">პაკეტი</TableHead>
+              <TableHead>ფასი</TableHead>
+              <TableHead className="hidden md:table-cell">დანადგარი</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -146,19 +151,26 @@ function ClientsPage() {
                 <TableCell className="font-mono text-xs">
                   {c.cabin_phone ?? "—"}
                 </TableCell>
-                <TableCell className="hidden font-mono text-xs md:table-cell">
+                <TableCell className="hidden font-mono text-xs xl:table-cell">
                   {c.contact_phone_2 ?? "—"}
                 </TableCell>
                 <TableCell className="hidden text-xs lg:table-cell">
-                  {c.contact_person ?? "—"}
+                  {pkgName(c.package_id)}
                 </TableCell>
-                <TableCell className="text-xs">{pkgName(c.package_id)}</TableCell>
+                <TableCell className="text-xs whitespace-nowrap tabular-nums">
+                  {c.monthly_fee != null
+                    ? `${c.monthly_fee} ${c.currency ?? ""}`.trim()
+                    : "—"}
+                </TableCell>
+                <TableCell className="hidden text-xs md:table-cell">
+                  {c.device_count ?? "—"}
+                </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   კლიენტები არ მოიძებნა
@@ -253,6 +265,34 @@ function ClientsPage() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>ყოველთვიური ფასი</Label>
+                <Input
+                  type="number"
+                  value={form.monthly_fee}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, monthly_fee: e.target.value }))
+                  }
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>ვალუტა</Label>
+                <Select
+                  value={form.currency}
+                  onValueChange={(v) => setForm((f) => ({ ...f, currency: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GEL">GEL (₾)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div className="grid gap-1.5">
               <Label>მისამართი</Label>
               <Input

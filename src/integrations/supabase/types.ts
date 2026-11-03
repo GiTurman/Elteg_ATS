@@ -411,6 +411,47 @@ export type Database = {
           },
         ]
       }
+      operator_shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duty_role: string
+          ends_at: string
+          id: string
+          notes: string | null
+          profile_id: string
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duty_role?: string
+          ends_at: string
+          id?: string
+          notes?: string | null
+          profile_id: string
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duty_role?: string
+          ends_at?: string
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_shifts_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -724,6 +765,10 @@ export type Database = {
       }
       normalize_ge_phone: { Args: { _phone: string }; Returns: string }
       regenerate_telephony_token: { Args: never; Returns: string }
+      set_operator_contact: {
+        Args: { _extension: string; _phone: string; _profile_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "dispatcher" | "technician" | "manager"

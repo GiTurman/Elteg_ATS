@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import {
   computeCallLogPatch,
+  normalizeGePhone,
   safeEqual,
   telephonyEventSchema,
   type CallLogState,
@@ -46,7 +47,11 @@ export const Route = createFileRoute("/api/public/telephony/webhook")({
         const result = telephonyEventSchema.safeParse(rawBody);
         if (!result.success) {
           return json(
-            { ok: false, error: "invalid_payload", issues: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`) },
+            {
+              ok: false,
+              error: "invalid_payload",
+              issues: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`),
+            },
             400,
           );
         }
@@ -56,7 +61,10 @@ export const Route = createFileRoute("/api/public/telephony/webhook")({
           // 3. Ensure the row exists (idempotent), then read current state
           const { error: insErr } = await db
             .from("call_logs")
-            .upsert({ external_call_id: ev.call_id }, { onConflict: "external_call_id", ignoreDuplicates: true });
+            .upsert(
+              { external_call_id: ev.call_id },
+              { onConflict: "external_call_id", ignoreDuplicates: true },
+            );
           if (insErr) throw insErr;
           const { data: row, error: selErr } = await db
             .from("call_logs")
@@ -89,7 +97,9 @@ export const Route = createFileRoute("/api/public/telephony/webhook")({
                 ? (patch.called_number ?? row.called_number)
                 : (patch.caller_number ?? row.caller_number);
             if (numberToMatch) {
-              const { data: m, error: mErr } = await db.rpc("match_caller", { _phone: numberToMatch });
+              const { data: m, error: mErr } = await db.rpc("match_caller", {
+                _phone: numberToMatch,
+              });
               if (mErr) console.error("[telephony] match failed", mErr);
               const hit = Array.isArray(m) ? m[0] : null;
               if (hit) {
@@ -113,8 +123,29 @@ export const Route = createFileRoute("/api/public/telephony/webhook")({
             if (agent) update["agent_profile_id"] = agent.id;
           }
 
-          const { error: upErr } = await db.from("call_logs").update(update as never).eq("id", row.id);
+          const { error: upErr } = await db
+            .from("call_logs")
+            .update(update as never)
+            .eq("id", row.id);
           if (upErr) throw upErr;
+
+          // 5b. Same number called again and was answered → close its older pending callbacks
+          if (patch.direction === "inbound" && patch.status === "answered") {
+            const norm = normalizeGePhone(patch.caller_number ?? row.caller_number);
+            if (norm) {
+              const { error: cbErr } = await db
+                .from("call_logs")
+                .update({
+                  callback_status: "done",
+                  // callback_by = null → ავტომატურად დაიხურა (აბონენტმა ხელახლა დარეკა)
+                  callback_at: patch.answered_at ?? new Date().toISOString(),
+                })
+                .eq("caller_number_norm", norm)
+                .eq("callback_status", "pending")
+                .neq("id", row.id);
+              if (cbErr) console.error("[telephony] auto-close callbacks failed", cbErr);
+            }
+          }
 
           // 6. Hotline popup for inbound calls / dismiss for test calls
           if (patch.status === "test") {

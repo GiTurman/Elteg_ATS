@@ -178,7 +178,7 @@ function ObjectsPage() {
             <TableRow>
               <TableHead>ობიექტი</TableHead>
               <TableHead className="hidden md:table-cell">ლიფტი</TableHead>
-              <TableHead className="hidden lg:table-cell">მწარმოებელი</TableHead>
+              <TableHead className="hidden lg:table-cell">დანადგარი / შენიშვნა</TableHead>
               <TableHead>ინტერვალი</TableHead>
               <TableHead className="hidden sm:table-cell">ბოლო მოვლა</TableHead>
               <TableHead>შემდეგი</TableHead>
@@ -203,8 +203,8 @@ function ObjectsPage() {
                   <TableCell className="hidden font-mono text-xs md:table-cell">
                     {o.elevator_code}
                   </TableCell>
-                  <TableCell className="hidden text-xs lg:table-cell">
-                    {o.manufacturer ?? "—"}
+                  <TableCell className="hidden max-w-[260px] truncate text-xs lg:table-cell">
+                    {o.notes ?? o.manufacturer ?? "—"}
                   </TableCell>
                   <TableCell className="text-xs">
                     {o.maintenance_interval_months} თვე
