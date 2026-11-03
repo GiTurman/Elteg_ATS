@@ -12,7 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
+import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedIncomingRouteImport } from './routes/_authenticated/incoming'
+import { Route as AuthenticatedObjectsRouteImport } from './routes/_authenticated/objects'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
+import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
+import { Route as AuthenticatedTariffsRouteImport } from './routes/_authenticated/tariffs'
+import { Route as AuthenticatedTeamsRouteImport } from './routes/_authenticated/teams'
+import { Route as AuthenticatedTelephonyRouteImport } from './routes/_authenticated/telephony'
+import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedCallsCallIdRouteImport } from './routes/_authenticated/calls.$callId'
+import { Route as ApiPublicTelephonyWebhookRouteImport } from './routes/api/public/telephony/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,42 +40,187 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
+  id: '/calls',
+  path: '/calls',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedIncomingRoute = AuthenticatedIncomingRouteImport.update({
+  id: '/incoming',
+  path: '/incoming',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedObjectsRoute = AuthenticatedObjectsRouteImport.update({
+  id: '/objects',
+  path: '/objects',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedScheduleRoute = AuthenticatedScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTariffsRoute = AuthenticatedTariffsRouteImport.update({
+  id: '/tariffs',
+  path: '/tariffs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTeamsRoute = AuthenticatedTeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTelephonyRoute = AuthenticatedTelephonyRouteImport.update({
+  id: '/telephony',
+  path: '/telephony',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCallsCallIdRoute =
+  AuthenticatedCallsCallIdRouteImport.update({
+    id: '/$callId',
+    path: '/$callId',
+    getParentRoute: () => AuthenticatedCallsRoute,
+  } as any)
+const ApiPublicTelephonyWebhookRoute =
+  ApiPublicTelephonyWebhookRouteImport.update({
+    id: '/api/public/telephony/webhook',
+    path: '/api/public/telephony/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/calls': typeof AuthenticatedCallsRouteWithChildren
+  '/clients': typeof AuthenticatedClientsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/incoming': typeof AuthenticatedIncomingRoute
+  '/objects': typeof AuthenticatedObjectsRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/tariffs': typeof AuthenticatedTariffsRoute
+  '/teams': typeof AuthenticatedTeamsRoute
+  '/telephony': typeof AuthenticatedTelephonyRoute
+  '/users': typeof AuthenticatedUsersRoute
+  '/calls/$callId': typeof AuthenticatedCallsCallIdRoute
+  '/api/public/telephony/webhook': typeof ApiPublicTelephonyWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/calls': typeof AuthenticatedCallsRouteWithChildren
+  '/clients': typeof AuthenticatedClientsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/incoming': typeof AuthenticatedIncomingRoute
+  '/objects': typeof AuthenticatedObjectsRoute
+  '/reports': typeof AuthenticatedReportsRoute
+  '/schedule': typeof AuthenticatedScheduleRoute
+  '/tariffs': typeof AuthenticatedTariffsRoute
+  '/teams': typeof AuthenticatedTeamsRoute
+  '/telephony': typeof AuthenticatedTelephonyRoute
+  '/users': typeof AuthenticatedUsersRoute
+  '/calls/$callId': typeof AuthenticatedCallsCallIdRoute
+  '/api/public/telephony/webhook': typeof ApiPublicTelephonyWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/calls': typeof AuthenticatedCallsRouteWithChildren
+  '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/incoming': typeof AuthenticatedIncomingRoute
+  '/_authenticated/objects': typeof AuthenticatedObjectsRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
+  '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
+  '/_authenticated/tariffs': typeof AuthenticatedTariffsRoute
+  '/_authenticated/teams': typeof AuthenticatedTeamsRoute
+  '/_authenticated/telephony': typeof AuthenticatedTelephonyRoute
+  '/_authenticated/users': typeof AuthenticatedUsersRoute
+  '/_authenticated/calls/$callId': typeof AuthenticatedCallsCallIdRoute
+  '/api/public/telephony/webhook': typeof ApiPublicTelephonyWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/calls'
+    | '/clients'
+    | '/dashboard'
+    | '/incoming'
+    | '/objects'
+    | '/reports'
+    | '/schedule'
+    | '/tariffs'
+    | '/teams'
+    | '/telephony'
+    | '/users'
+    | '/calls/$callId'
+    | '/api/public/telephony/webhook'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard'
+  to:
+    | '/'
+    | '/auth'
+    | '/calls'
+    | '/clients'
+    | '/dashboard'
+    | '/incoming'
+    | '/objects'
+    | '/reports'
+    | '/schedule'
+    | '/tariffs'
+    | '/teams'
+    | '/telephony'
+    | '/users'
+    | '/calls/$callId'
+    | '/api/public/telephony/webhook'
   id:
-    '__root__' | '/' | '/_authenticated' | '/auth' | '/_authenticated/dashboard'
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/calls'
+    | '/_authenticated/clients'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/incoming'
+    | '/_authenticated/objects'
+    | '/_authenticated/reports'
+    | '/_authenticated/schedule'
+    | '/_authenticated/tariffs'
+    | '/_authenticated/teams'
+    | '/_authenticated/telephony'
+    | '/_authenticated/users'
+    | '/_authenticated/calls/$callId'
+    | '/api/public/telephony/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicTelephonyWebhookRoute: typeof ApiPublicTelephonyWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -89,6 +246,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/calls': {
+      id: '/_authenticated/calls'
+      path: '/calls'
+      fullPath: '/calls'
+      preLoaderRoute: typeof AuthenticatedCallsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clients': {
+      id: '/_authenticated/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof AuthenticatedClientsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -96,15 +267,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/incoming': {
+      id: '/_authenticated/incoming'
+      path: '/incoming'
+      fullPath: '/incoming'
+      preLoaderRoute: typeof AuthenticatedIncomingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/objects': {
+      id: '/_authenticated/objects'
+      path: '/objects'
+      fullPath: '/objects'
+      preLoaderRoute: typeof AuthenticatedObjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/schedule': {
+      id: '/_authenticated/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof AuthenticatedScheduleRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tariffs': {
+      id: '/_authenticated/tariffs'
+      path: '/tariffs'
+      fullPath: '/tariffs'
+      preLoaderRoute: typeof AuthenticatedTariffsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/teams': {
+      id: '/_authenticated/teams'
+      path: '/teams'
+      fullPath: '/teams'
+      preLoaderRoute: typeof AuthenticatedTeamsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/telephony': {
+      id: '/_authenticated/telephony'
+      path: '/telephony'
+      fullPath: '/telephony'
+      preLoaderRoute: typeof AuthenticatedTelephonyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/users': {
+      id: '/_authenticated/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof AuthenticatedUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/calls/$callId': {
+      id: '/_authenticated/calls/$callId'
+      path: '/$callId'
+      fullPath: '/calls/$callId'
+      preLoaderRoute: typeof AuthenticatedCallsCallIdRouteImport
+      parentRoute: typeof AuthenticatedCallsRoute
+    }
+    '/api/public/telephony/webhook': {
+      id: '/api/public/telephony/webhook'
+      path: '/api/public/telephony/webhook'
+      fullPath: '/api/public/telephony/webhook'
+      preLoaderRoute: typeof ApiPublicTelephonyWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedCallsRouteChildren {
+  AuthenticatedCallsCallIdRoute: typeof AuthenticatedCallsCallIdRoute
+}
+
+const AuthenticatedCallsRouteChildren: AuthenticatedCallsRouteChildren = {
+  AuthenticatedCallsCallIdRoute: AuthenticatedCallsCallIdRoute,
+}
+
+const AuthenticatedCallsRouteWithChildren =
+  AuthenticatedCallsRoute._addFileChildren(AuthenticatedCallsRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedCallsRoute: typeof AuthenticatedCallsRouteWithChildren
+  AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedIncomingRoute: typeof AuthenticatedIncomingRoute
+  AuthenticatedObjectsRoute: typeof AuthenticatedObjectsRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
+  AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
+  AuthenticatedTariffsRoute: typeof AuthenticatedTariffsRoute
+  AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
+  AuthenticatedTelephonyRoute: typeof AuthenticatedTelephonyRoute
+  AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedCallsRoute: AuthenticatedCallsRouteWithChildren,
+  AuthenticatedClientsRoute: AuthenticatedClientsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedIncomingRoute: AuthenticatedIncomingRoute,
+  AuthenticatedObjectsRoute: AuthenticatedObjectsRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
+  AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
+  AuthenticatedTariffsRoute: AuthenticatedTariffsRoute,
+  AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
+  AuthenticatedTelephonyRoute: AuthenticatedTelephonyRoute,
+  AuthenticatedUsersRoute: AuthenticatedUsersRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -114,6 +386,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicTelephonyWebhookRoute: ApiPublicTelephonyWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

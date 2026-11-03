@@ -59,6 +59,8 @@ export type IncomingCall = {
   status: string;
   raw: Record<string, unknown> | null;
   received_at: string;
+  is_cabin_call: boolean;
+  call_log_id: string | null;
 };
 
 export const tariffsQuery = queryOptions({

@@ -8,6 +8,20 @@
       "when": 1789985867841,
       "tag": "0000_create_dispatch_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793694392038,
+      "tag": "0001_call_center_telephony",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793694444922,
+      "tag": "0002_incoming_calls_unique_call_log",
+      "breakpoints": true
     }
   ]
 }

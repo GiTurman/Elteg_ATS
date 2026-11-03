@@ -14,6 +14,135 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_logs: {
+        Row: {
+          agent_extension: string | null
+          agent_profile_id: string | null
+          answered_at: string | null
+          callback_at: string | null
+          callback_by: string | null
+          callback_status: string
+          called_number: string | null
+          caller_number: string | null
+          caller_number_norm: string | null
+          created_at: string
+          direction: string | null
+          ended_at: string | null
+          external_call_id: string
+          id: string
+          incoming_call_id: string | null
+          is_cabin_call: boolean
+          matched_client_id: string | null
+          matched_object_id: string | null
+          notes: string | null
+          queue_name: string | null
+          raw: Json | null
+          recording_url: string | null
+          service_call_id: string | null
+          started_at: string | null
+          status: string
+          talk_seconds: number | null
+          updated_at: string
+          wait_seconds: number | null
+        }
+        Insert: {
+          agent_extension?: string | null
+          agent_profile_id?: string | null
+          answered_at?: string | null
+          callback_at?: string | null
+          callback_by?: string | null
+          callback_status?: string
+          called_number?: string | null
+          caller_number?: string | null
+          caller_number_norm?: string | null
+          created_at?: string
+          direction?: string | null
+          ended_at?: string | null
+          external_call_id: string
+          id?: string
+          incoming_call_id?: string | null
+          is_cabin_call?: boolean
+          matched_client_id?: string | null
+          matched_object_id?: string | null
+          notes?: string | null
+          queue_name?: string | null
+          raw?: Json | null
+          recording_url?: string | null
+          service_call_id?: string | null
+          started_at?: string | null
+          status?: string
+          talk_seconds?: number | null
+          updated_at?: string
+          wait_seconds?: number | null
+        }
+        Update: {
+          agent_extension?: string | null
+          agent_profile_id?: string | null
+          answered_at?: string | null
+          callback_at?: string | null
+          callback_by?: string | null
+          callback_status?: string
+          called_number?: string | null
+          caller_number?: string | null
+          caller_number_norm?: string | null
+          created_at?: string
+          direction?: string | null
+          ended_at?: string | null
+          external_call_id?: string
+          id?: string
+          incoming_call_id?: string | null
+          is_cabin_call?: boolean
+          matched_client_id?: string | null
+          matched_object_id?: string | null
+          notes?: string | null
+          queue_name?: string | null
+          raw?: Json | null
+          recording_url?: string | null
+          service_call_id?: string | null
+          started_at?: string | null
+          status?: string
+          talk_seconds?: number | null
+          updated_at?: string
+          wait_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_logs_agent_profile_id_fkey"
+            columns: ["agent_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_incoming_call_id_fkey"
+            columns: ["incoming_call_id"]
+            isOneToOne: false
+            referencedRelation: "incoming_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_matched_client_id_fkey"
+            columns: ["matched_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_matched_object_id_fkey"
+            columns: ["matched_object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_logs_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_notes: {
         Row: {
           author_id: string | null
@@ -154,8 +283,10 @@ export type Database = {
       }
       incoming_calls: {
         Row: {
+          call_log_id: string | null
           caller_number: string | null
           id: string
+          is_cabin_call: boolean
           matched_client_id: string | null
           matched_object_id: string | null
           raw: Json | null
@@ -164,8 +295,10 @@ export type Database = {
           status: string
         }
         Insert: {
+          call_log_id?: string | null
           caller_number?: string | null
           id?: string
+          is_cabin_call?: boolean
           matched_client_id?: string | null
           matched_object_id?: string | null
           raw?: Json | null
@@ -174,8 +307,10 @@ export type Database = {
           status?: string
         }
         Update: {
+          call_log_id?: string | null
           caller_number?: string | null
           id?: string
+          is_cabin_call?: boolean
           matched_client_id?: string | null
           matched_object_id?: string | null
           raw?: Json | null
@@ -184,6 +319,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "incoming_calls_call_log_id_fkey"
+            columns: ["call_log_id"]
+            isOneToOne: false
+            referencedRelation: "call_logs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "incoming_calls_matched_client_id_fkey"
             columns: ["matched_client_id"]
@@ -273,6 +415,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          extension: string | null
           full_name: string
           id: string
           is_active: boolean
@@ -281,6 +424,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          extension?: string | null
           full_name?: string
           id: string
           is_active?: boolean
@@ -289,6 +433,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          extension?: string | null
           full_name?: string
           id?: string
           is_active?: boolean
@@ -517,6 +662,27 @@ export type Database = {
         }
         Relationships: []
       }
+      telephony_settings: {
+        Row: {
+          answer_sla_seconds: number
+          id: number
+          updated_at: string
+          webhook_token: string
+        }
+        Insert: {
+          answer_sla_seconds?: number
+          id?: number
+          updated_at?: string
+          webhook_token?: string
+        }
+        Update: {
+          answer_sla_seconds?: number
+          id?: number
+          updated_at?: string
+          webhook_token?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -548,6 +714,16 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      match_caller: {
+        Args: { _phone: string }
+        Returns: {
+          client_id: string
+          is_cabin: boolean
+          object_id: string
+        }[]
+      }
+      normalize_ge_phone: { Args: { _phone: string }; Returns: string }
+      regenerate_telephony_token: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "dispatcher" | "technician" | "manager"

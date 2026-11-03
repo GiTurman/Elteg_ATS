@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { PhoneIncoming } from "lucide-react";
+import { PhoneIncoming, Siren } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
@@ -17,6 +17,7 @@ import {
   type IncomingCall,
 } from "@/lib/entities";
 import { objectsQuery } from "@/lib/queries";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/incoming")({
   head: () => ({
@@ -62,6 +63,7 @@ function IncomingPage() {
       const obj = object(ic.matched_object_id);
       const cName = clientName(ic.matched_client_id);
       const client = clients.find((c) => c.id === ic.matched_client_id);
+      const isCabin = ic.is_cabin_call;
       const { data: call, error } = await dbx
         .from("service_calls")
         .insert({
@@ -70,9 +72,11 @@ function IncomingPage() {
           site_name: obj?.name ?? cName ?? "ცხელი ხაზი",
           address: obj?.address ?? client?.address ?? "—",
           elevator_code: obj?.elevator_code ?? null,
-          service_type: "avaria",
-          priority: "maghali",
-          description: `ცხელი ხაზიდან, ნომერი: ${ic.caller_number ?? "—"}`,
+          service_type: isCabin ? "chamokideba" : "avaria",
+          priority: isCabin ? "kritikuli" : "maghali",
+          description: isCabin
+            ? `🚨 კაბინიდან ზარი — შესაძლოა ჩარჩენილი მგზავრი. ნომერი: ${ic.caller_number ?? "—"}`
+            : `ცხელი ხაზიდან, ნომერი: ${ic.caller_number ?? "—"}`,
           client_name: cName,
           client_phone: ic.caller_number,
           caller_number: ic.caller_number,
@@ -87,6 +91,13 @@ function IncomingPage() {
         .update({ status: "linked", service_call_id: call.id })
         .eq("id", ic.id);
       if (upErr) throw upErr;
+      if (ic.call_log_id) {
+        const { error: logErr } = await supabase
+          .from("call_logs")
+          .update({ service_call_id: call.id })
+          .eq("id", ic.call_log_id);
+        if (logErr) throw logErr;
+      }
       return call.id as string;
     },
     onSuccess: (callId) => {
@@ -112,24 +123,51 @@ function IncomingPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const newCalls = incoming.filter((c) => c.status === "new");
+  const newCalls = incoming
+    .filter((c) => c.status === "new")
+    .sort((a, b) => Number(b.is_cabin_call) - Number(a.is_cabin_call));
+  const cabinCount = newCalls.filter((c) => c.is_cabin_call).length;
 
   return (
     <AppShell
       title="ცხელი ხაზი"
-      subtitle={`ახალი ზარები: ${newCalls.length}`}
+      subtitle={`ახალი ზარები: ${newCalls.length}${cabinCount ? ` · კაბინიდან: ${cabinCount}` : ""}`}
     >
       <div className="space-y-3">
         {newCalls.map((ic) => {
           const obj = object(ic.matched_object_id);
           const cName = clientName(ic.matched_client_id);
+          const isCabin = ic.is_cabin_call;
           return (
-            <Card key={ic.id} className="border-primary/30">
+            <Card
+              key={ic.id}
+              className={cn(
+                isCabin
+                  ? "border-2 border-destructive bg-destructive/5"
+                  : "border-primary/30",
+              )}
+            >
               <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-                <div className="rounded-md bg-primary/10 p-2 text-primary">
-                  <PhoneIncoming className="size-5" />
+                <div
+                  className={cn(
+                    "rounded-md p-2",
+                    isCabin
+                      ? "animate-pulse bg-destructive text-destructive-foreground"
+                      : "bg-primary/10 text-primary",
+                  )}
+                >
+                  {isCabin ? (
+                    <Siren className="size-5" />
+                  ) : (
+                    <PhoneIncoming className="size-5" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
+                  {isCabin ? (
+                    <div className="mb-1 text-sm font-semibold text-destructive">
+                      🚨 კაბინიდან ზარი — შესაძლოა ჩარჩენილი მგზავრი
+                    </div>
+                  ) : null}
                   <div className="font-mono text-sm font-medium">
                     {ic.caller_number ?? "უცნობი ნომერი"}
                   </div>
@@ -144,6 +182,7 @@ function IncomingPage() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
+                      variant={isCabin ? "destructive" : "default"}
                       onClick={() => createFromCall.mutate(ic)}
                       disabled={createFromCall.isPending}
                     >

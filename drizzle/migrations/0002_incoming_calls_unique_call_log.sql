@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS incoming_calls_call_log_id_unique ON public.incoming_calls (call_log_id) WHERE call_log_id IS NOT NULL;
