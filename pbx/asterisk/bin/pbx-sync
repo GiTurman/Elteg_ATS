@@ -1,0 +1,58 @@
+#!/bin/bash
+# აპიდან ოპერატორების სინქრონიზაცია: SIP ანგარიშები + რიგის წევრები + მთავარი ნომერი.
+# ავტორი: Giorgi Turmanidze "GT"
+set -uo pipefail
+[ -f /etc/pbx.env ] && . /etc/pbx.env
+CONF=/etc/asterisk
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+
+if [ -n "${PBX_CONFIG_FILE:-}" ]; then
+  cp "$PBX_CONFIG_FILE" "$tmp/cfg.json"   # ტესტისთვის
+else
+  curl -fsS --max-time 10 -H "X-Webhook-Token: ${WEBHOOK_TOKEN}" \
+    "${APP_URL%/}/api/public/telephony/pbx-config" -o "$tmp/cfg.json" 2>/dev/null || exit 0
+fi
+jq -e '.ok == true' "$tmp/cfg.json" >/dev/null 2>&1 || exit 0
+
+jq -r '.users[]
+  | select(.extension | test("^[0-9]{2,6}$"))
+  | (.name | gsub("[\",;\\\\\\r\\n]"; " ")) as $name
+  | "[\(.extension)](webrtc-op)\nauth = \(.extension)\naors = \(.extension)\ncallerid = \"\($name)\" <\(.extension)>\n\n[\(.extension)]\ntype = auth\nauth_type = userpass\nusername = \(.extension)\npassword = \(.password)\n\n[\(.extension)]\ntype = aor\nmax_contacts = 3\nremove_existing = yes\nremove_unavailable = yes\nqualify_frequency = 25\n"' \
+  "$tmp/cfg.json" > "$tmp/pjsip_endpoints.conf"
+
+jq -r '.users[]
+  | select(.role == "dispatcher" and (.extension | test("^[0-9]{2,6}$")))
+  | (.name | gsub("[\",;\\\\\\r\\n]"; " ")) as $name
+  | "member => PJSIP/\(.extension),0,\($name),PJSIP/\(.extension)"' \
+  "$tmp/cfg.json" > "$tmp/queues_members.conf"
+
+main="${MAIN_NUMBER:-}"
+[ -z "$main" ] && main=$(jq -r '.main_number // ""' "$tmp/cfg.json" | tr -cd '0-9+')
+{
+  echo "MAIN_NUMBER=${main}"
+  echo "QUEUE_TIMEOUT=${QUEUE_TIMEOUT:-40}"
+  echo "OVERFLOW_TIMEOUT=${OVERFLOW_TIMEOUT:-30}"
+} > "$tmp/extensions_globals.conf"
+
+running() { asterisk -rx 'core show uptime' >/dev/null 2>&1; }
+changed=()
+for f in pjsip_endpoints.conf queues_members.conf extensions_globals.conf; do
+  if ! cmp -s "$tmp/$f" "$CONF/$f"; then
+    install -m 640 "$tmp/$f" "$CONF/$f"
+    changed+=("$f")
+  fi
+done
+if running && [ ${#changed[@]} -gt 0 ]; then
+  for f in "${changed[@]}"; do
+    case "$f" in
+      pjsip_endpoints.conf) asterisk -rx 'module reload res_pjsip.so' >/dev/null ;;
+      queues_members.conf) asterisk -rx 'queue reload members' >/dev/null ;;
+      extensions_globals.conf) asterisk -rx 'dialplan reload' >/dev/null ;;
+    esac
+  done
+  echo "$(date '+%F %T') sync: განახლდა ${changed[*]} ($(jq '.users | length' "$tmp/cfg.json") მომხმარებელი)"
+fi
+
+# ძველი ჩანაწერების წაშლა
+find /var/spool/asterisk/monitor -name '*.wav' -mtime +"${REC_RETENTION_DAYS:-180}" -delete 2>/dev/null || true
+exit 0

@@ -66,6 +66,23 @@ export const Route = createFileRoute("/api/public/telephony/on-duty")({
           }))
           .filter((r) => !!r.target);
 
+        // format=dial — Asterisk-ისთვის მზა Dial() სტრიქონი (ოპერატორები გამოტოვებულია —
+        // ისინი უკვე რიგშია): PJSIP/100&PJSIP/599123456@trunk
+        if (url.searchParams.get("format") === "dial") {
+          const parts = routing
+            .filter((r) => r.duty_role !== "operator")
+            .map((r) => {
+              const t = String(r.target).replace(/[^0-9+]/g, "");
+              if (!t) return null;
+              return r.target_type === "extension" ? `PJSIP/${t}` : `PJSIP/${t}@trunk`;
+            })
+            .filter((x): x is string => !!x);
+          return new Response([...new Set(parts)].join("&"), {
+            status: 200,
+            headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+          });
+        }
+
         return json({
           ok: true,
           at: iso,

@@ -1,0 +1,22 @@
+#!/bin/bash
+# ნომრის ფორმატი ოპერატორისთვის (OUTBOUND_FORMAT). ავტორი: Giorgi Turmanidze "GT"
+[ -f /etc/pbx.env ] && . /etc/pbx.env
+d=$(printf '%s' "${1:-}" | tr -cd '0-9+')
+case "$d" in
+  +995*) n=${d#+995} ;;
+  00995*) n=${d#00995} ;;
+  995?????????) n=${d#995} ;;
+  0?????????) n=${d#0} ;;
+  *) n=$d ;;
+esac
+# n — 9-ნიშნა ეროვნული ნომერი (მაგ. 599123456 / 322770200); სხვა შემთხვევაში უცვლელად
+if [ ${#n} -eq 9 ] && [[ "$n" =~ ^[0-9]+$ ]]; then
+  case "${OUTBOUND_FORMAT:-national}" in
+    national0) printf '0%s' "$n" ;;
+    e164) printf '+995%s' "$n" ;;
+    intl00) printf '00995%s' "$n" ;;
+    *) printf '%s' "$n" ;;
+  esac
+else
+  printf '%s' "$d"
+fi

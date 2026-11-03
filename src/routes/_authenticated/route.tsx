@@ -2,6 +2,8 @@ import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-
 import { useQueryClient } from "@tanstack/react-query";
 import { Clock, LogOut } from "lucide-react";
 
+import { SoftphonePanel } from "@/components/softphone/SoftphonePanel";
+import { SoftphoneProvider } from "@/components/softphone/SoftphoneProvider";
 import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +20,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 /** როლის გარეშე მომხმარებელი ვერ ხედავს სისტემას, სანამ მენეჯერი არ დაადასტურებს. */
 function AuthenticatedGate() {
-  const { isPending, loading, email } = useCurrentUser();
+  const { isPending, loading, email, isDispatcher } = useCurrentUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -54,5 +56,11 @@ function AuthenticatedGate() {
     );
   }
 
-  return <Outlet />;
+  // ტელეფონის პანელი ცოცხლობს გვერდებს შორის გადასვლისას (Outlet-ის გარეთ)
+  return (
+    <SoftphoneProvider enabled={isDispatcher}>
+      <Outlet />
+      {isDispatcher ? <SoftphonePanel /> : null}
+    </SoftphoneProvider>
+  );
 }

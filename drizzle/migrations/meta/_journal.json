@@ -36,6 +36,13 @@
       "when": 1793696500000,
       "tag": "0004_secure_signup_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793700600000,
+      "tag": "0005_pbx_settings",
+      "breakpoints": true
     }
   ]
 }

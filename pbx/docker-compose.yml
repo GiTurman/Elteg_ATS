@@ -1,0 +1,32 @@
+# GT-ATS — სატელეფონო სადგური (Asterisk + Caddy TLS)
+# ავტორი: Giorgi Turmanidze "GT"
+# გაშვება: cp .env.example .env && nano .env && docker compose up -d --build
+services:
+  asterisk:
+    build: ./asterisk
+    container_name: gt-ats-asterisk
+    restart: unless-stopped
+    network_mode: host # SIP/RTP-ს NAT-ის გარეშე
+    env_file: .env
+    volumes:
+      - recordings:/var/spool/asterisk/monitor
+      - ./sounds:/var/lib/asterisk/sounds/custom:ro
+      - asterisk-keys:/var/lib/asterisk/keys
+
+  caddy:
+    image: caddy:2.8.4
+    container_name: gt-ats-caddy
+    restart: unless-stopped
+    network_mode: host # 80/443 — ავტომატური HTTPS (Let's Encrypt)
+    env_file: .env
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - recordings:/recordings:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  recordings:
+  asterisk-keys:
+  caddy-data:
+  caddy-config:

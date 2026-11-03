@@ -1,0 +1,15 @@
+# GT-ATS — HTTPS და WebRTC (wss) პროქსი. ავტორი: Giorgi Turmanidze "GT"
+{$PBX_DOMAIN} {
+	handle /ws {
+		reverse_proxy 127.0.0.1:8088
+	}
+	handle_path /rec/{$REC_SECRET}/* {
+		root * /recordings
+		header Access-Control-Allow-Origin *
+		header Cache-Control "private, max-age=3600"
+		file_server
+	}
+	handle {
+		respond "GT-ATS" 200
+	}
+}

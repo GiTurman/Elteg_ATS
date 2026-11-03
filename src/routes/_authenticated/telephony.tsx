@@ -300,6 +300,8 @@ function TelephonyPage() {
 
         <Simulator webhookUrl={webhookUrl} token={token} clients={clients} />
 
+        <PbxCard origin={origin || PUBLISHED_ORIGIN} />
+
         <OperatorsCard />
 
         <Card>
@@ -746,6 +748,83 @@ function OperatorsCard() {
             </div>
           );
         })}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PbxCard({ origin }: { origin: string }) {
+  const queryClient = useQueryClient();
+  const { data: settings } = useQuery(settingsQuery);
+  const [wss, setWss] = useState("");
+  const [main, setMain] = useState("");
+  useEffect(() => {
+    const s = settings as { pbx_wss_url?: string | null; main_number?: string | null } | null;
+    setWss(s?.pbx_wss_url ?? "");
+    setMain(s?.main_number ?? "");
+  }, [settings]);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const url = wss.trim();
+      if (url && !/^wss:\/\/[a-z0-9.-]+(:\d+)?\/ws$/i.test(url)) {
+        throw new Error("მისამართი უნდა იყოს ასეთი: wss://pbx.თქვენი-დომენი.ge/ws");
+      }
+      const { error } = await supabase
+        .from("telephony_settings")
+        .update({
+          pbx_wss_url: url || null,
+          main_number: main.replace(/[^0-9+]/g, "") || null,
+          updated_at: new Date().toISOString(),
+        } as never)
+        .eq("id", 1);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["telephony_settings"] });
+      toast.success("შენახულია — ოპერატორებმა განაახლონ გვერდი (F5)");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm">
+          სატელეფონო სადგური (Asterisk) — ბრაუზერის ტელეფონი
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid gap-1.5">
+          <Label>სადგურის WebRTC მისამართი</Label>
+          <Input
+            className="font-mono text-xs"
+            placeholder="wss://pbx.example.ge/ws"
+            value={wss}
+            onChange={(e) => setWss(e.target.value)}
+          />
+        </div>
+        <div className="grid gap-1.5">
+          <Label>მთავარი ნომერი (გამავალ ზარზე გამოჩნდება)</Label>
+          <Input
+            className="font-mono text-xs"
+            placeholder="0322770200"
+            value={main}
+            onChange={(e) => setMain(e.target.value)}
+          />
+        </div>
+        <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+          შენახვა
+        </Button>
+        <div className="space-y-1 rounded-md border bg-muted p-3 text-[11px] text-muted-foreground">
+          <p className="font-medium text-foreground">სადგურის .env ფაილისთვის:</p>
+          <p className="font-mono">APP_URL={origin}</p>
+          <p className="font-mono">WEBHOOK_TOKEN=&lt;ზემოთ მითითებული ტოკენი&gt;</p>
+          <p>
+            სადგური ყოველ წუთში თავად იღებს ოპერატორების სიას აქედან — ახალი ოპერატორის შიდა ნომერი
+            ავტომატურად ხდება SIP ანგარიში. პაროლები არავის სჭირდება ხელით.
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

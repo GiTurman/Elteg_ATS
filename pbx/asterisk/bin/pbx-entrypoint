@@ -1,0 +1,97 @@
+#!/bin/bash
+# GT-ATS სადგურის გაშვება. ავტორი: Giorgi Turmanidze "GT"
+set -euo pipefail
+: "${APP_URL:?APP_URL არ არის მითითებული .env-ში}"
+: "${WEBHOOK_TOKEN:?WEBHOOK_TOKEN არ არის მითითებული .env-ში}"
+: "${PBX_DOMAIN:?PBX_DOMAIN არ არის მითითებული .env-ში}"
+: "${REC_SECRET:?REC_SECRET არ არის მითითებული .env-ში}"
+if [ -z "${PUBLIC_IP:-}" ]; then
+  PUBLIC_IP=$(curl -fsS --max-time 5 https://api.ipify.org || true)
+fi
+: "${PUBLIC_IP:?PUBLIC_IP ვერ განისაზღვრა — მიუთითეთ .env-ში}"
+
+SRC=/opt/gt-ats/conf
+CONF=/etc/asterisk
+mkdir -p "$CONF" /var/log/asterisk /var/spool/asterisk/monitor /var/run/asterisk
+
+# სკრიპტებისთვის საჭირო ცვლადები
+: > /etc/pbx.env
+for v in APP_URL WEBHOOK_TOKEN PBX_DOMAIN REC_SECRET REC_RETENTION_DAYS MAIN_NUMBER \
+         OUTBOUND_FORMAT QUEUE_TIMEOUT OVERFLOW_TIMEOUT PBX_CONFIG_FILE; do
+  printf 'export %s=%q\n' "$v" "${!v:-}" >> /etc/pbx.env
+done
+chmod 600 /etc/pbx.env
+
+for f in asterisk.conf modules.conf logger.conf http.conf rtp.conf musiconhold.conf indications.conf queues.conf extensions.conf; do
+  cp "$SRC/$f" "$CONF/$f"
+done
+sed "s/@@PUBLIC_IP@@/${PUBLIC_IP}/g" "$SRC/pjsip.conf.tpl" > "$CONF/pjsip.conf"
+
+# ოპერატორის SIP ხაზი
+if [ -n "${TRUNK_HOST:-}" ]; then
+  dom=${TRUNK_DOMAIN:-$TRUNK_HOST}
+  port=${TRUNK_PORT:-5060}
+  {
+    echo "[trunk-auth]"
+    echo "type = auth"
+    echo "auth_type = userpass"
+    echo "username = ${TRUNK_USER:-}"
+    echo "password = ${TRUNK_PASS:-}"
+    echo
+    echo "[trunk]"
+    echo "type = aor"
+    echo "contact = sip:${TRUNK_HOST}:${port}"
+    echo "qualify_frequency = 60"
+    echo
+    echo "[trunk]"
+    echo "type = endpoint"
+    echo "transport = transport-udp"
+    echo "context = from-trunk"
+    echo "disallow = all"
+    echo "allow = alaw,ulaw"
+    echo "aors = trunk"
+    [ -n "${TRUNK_USER:-}" ] && echo "outbound_auth = trunk-auth"
+    [ -n "${TRUNK_USER:-}" ] && echo "from_user = ${TRUNK_USER}"
+    echo "from_domain = ${dom}"
+    echo "direct_media = no"
+    echo "rtp_symmetric = yes"
+    echo "force_rport = yes"
+    echo "rewrite_contact = yes"
+    echo "dtmf_mode = rfc4733"
+    echo "trust_id_inbound = yes"
+    echo
+    echo "[trunk]"
+    echo "type = identify"
+    echo "endpoint = trunk"
+    echo "match = ${TRUNK_HOST}"
+    IFS=',' read -ra extra <<< "${TRUNK_MATCH:-}"
+    for ip in "${extra[@]}"; do [ -n "${ip// /}" ] && echo "match = ${ip// /}"; done
+    if [ "${TRUNK_REGISTER:-yes}" = "yes" ] && [ -n "${TRUNK_USER:-}" ]; then
+      echo
+      echo "[trunk-reg]"
+      echo "type = registration"
+      echo "transport = transport-udp"
+      echo "outbound_auth = trunk-auth"
+      echo "server_uri = sip:${TRUNK_HOST}:${port}"
+      echo "client_uri = sip:${TRUNK_USER}@${dom}"
+      echo "contact_user = ${TRUNK_USER}"
+      echo "retry_interval = 60"
+      echo "forbidden_retry_interval = 600"
+      echo "expiration = 300"
+      echo "line = yes"
+      echo "endpoint = trunk"
+    fi
+  } > "$CONF/pjsip_trunk.conf"
+else
+  echo "; ოპერატორის ხაზი ჯერ არ არის მითითებული (.env → TRUNK_HOST)" > "$CONF/pjsip_trunk.conf"
+fi
+chmod 640 "$CONF/pjsip_trunk.conf"
+
+touch "$CONF/pjsip_endpoints.conf" "$CONF/queues_members.conf" "$CONF/extensions_globals.conf"
+/usr/local/bin/pbx-sync || true
+
+# ყოველ წუთში სინქრონიზაცია
+( while sleep 60; do /usr/local/bin/pbx-sync || true; done ) &
+
+echo "GT-ATS: სადგური ეშვება — ${PBX_DOMAIN} (${PUBLIC_IP})"
+exec asterisk -f -vvv

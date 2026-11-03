@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useSoftphone } from "@/components/softphone/SoftphoneProvider";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -626,6 +627,7 @@ function CallbackRow({
   onOpen: () => void;
 }) {
   const [note, setNote] = useState("");
+  const phone = useSoftphone();
   const waited = minutesSince(log.ended_at ?? log.started_at);
   const late = waited > 15;
   return (
@@ -638,14 +640,21 @@ function CallbackRow({
       <CardContent className="flex flex-col gap-3 p-3 lg:flex-row lg:items-center">
         <div className="min-w-0 flex-1 cursor-pointer" onClick={onOpen}>
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={log.caller_number ? `tel:${log.caller_number}` : undefined}
-              onClick={(e) => e.stopPropagation()}
-              className="font-mono text-sm font-semibold text-primary"
+            <button
+              type="button"
+              disabled={!log.caller_number}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!log.caller_number) return;
+                if (phone) phone.dial(log.caller_number);
+                else window.location.href = `tel:${log.caller_number}`;
+              }}
+              title="დარეკვა"
+              className="font-mono text-sm font-semibold text-primary hover:underline"
             >
               <PhoneCall className="mr-1 inline size-3.5" />
               {log.caller_number ?? "უცნობი ნომერი"}
-            </a>
+            </button>
             <StatusPill status={log.status} />
             {log.is_cabin_call ? (
               <Badge variant="destructive" className="text-[10px]">
@@ -703,6 +712,7 @@ function CallDetail({
   creating: boolean;
 }) {
   const queryClient = useQueryClient();
+  const phone = useSoftphone();
   const [notes, setNotes] = useState("");
   useEffect(() => setNotes(log?.notes ?? ""), [log]);
   const { data: sameNumber = [] } = useQuery(callsFromNumberQuery(log?.caller_number_norm ?? null));
@@ -790,7 +800,22 @@ function CallDetail({
               </Button>
             </div>
 
-            <div>
+            <div className="flex flex-wrap gap-2">
+              {(log.direction === "outbound" ? log.called_number : log.caller_number) ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const n = (
+                      log.direction === "outbound" ? log.called_number : log.caller_number
+                    )!;
+                    if (phone) phone.dial(n);
+                    else window.location.href = `tel:${n}`;
+                  }}
+                >
+                  <PhoneCall className="size-3.5" /> დარეკვა
+                </Button>
+              ) : null}
               {log.service_call_id ? (
                 <Button asChild size="sm" variant="secondary">
                   <Link to="/calls/$callId" params={{ callId: log.service_call_id }}>

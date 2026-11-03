@@ -1,0 +1,39 @@
+#!/bin/bash
+# აპის webhook-ზე მოვლენის გაგზავნა. ავტორი: Giorgi Turmanidze "GT"
+# გამოყენება: pbx-notify <event> <call_id> <direction> <from> <to> <extension> <status>
+# ("-" = ცარიელი). არგუმენტები დიალპლანში უკვე გაფილტრულია (ციფრები/+).
+set -u
+[ -f /etc/pbx.env ] && . /etc/pbx.env
+ev=${1:-}; id=${2:-}; dir=${3:--}; from=${4:--}; to=${5:--}; ext=${6:--}; st=${7:--}
+[ -z "$ev" ] || [ -z "$id" ] && exit 0
+n() { [ "$1" = "-" ] && echo "" || echo "$1"; }
+rec=""
+if [ "$ev" = "recording_ready" ]; then
+  f="/var/spool/asterisk/monitor/${id}.wav"
+  for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$f" ] && break; sleep 1; done
+  [ -s "$f" ] || exit 0
+  rec="https://${PBX_DOMAIN}/rec/${REC_SECRET}/${id}.wav"
+fi
+body=$(jq -nc \
+  --arg event "$ev" --arg call_id "$id" --arg direction "$(n "$dir")" \
+  --arg from "$(n "$from")" --arg to "$(n "$to")" --arg extension "$(n "$ext")" \
+  --arg status "$(n "$st")" --arg recording_url "$rec" \
+  --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
+  '{event:$event, call_id:$call_id, timestamp:$timestamp}
+   + (if $direction != "" then {direction:$direction} else {} end)
+   + (if $from != "" then {from:$from} else {} end)
+   + (if $to != "" then {to:$to} else {} end)
+   + (if $extension != "" and $extension != "mobile" then {extension:$extension} else {} end)
+   + (if $status != "" then {status:$status} else {} end)
+   + (if $recording_url != "" then {recording_url:$recording_url} else {} end)')
+for attempt in 1 2 3; do
+  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 8 \
+    -X POST "${APP_URL%/}/api/public/telephony/webhook" \
+    -H "Content-Type: application/json" -H "X-Webhook-Token: ${WEBHOOK_TOKEN}" \
+    --data "$body")
+  [ "$code" = "200" ] && exit 0
+  [ "$code" = "401" ] || [ "$code" = "400" ] && break
+  sleep $((attempt * 2))
+done
+echo "$(date '+%F %T') webhook $ev $id → HTTP $code" >> /var/log/asterisk/pbx-notify.log
+exit 0
