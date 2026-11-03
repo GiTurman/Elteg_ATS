@@ -36,14 +36,9 @@ function UsersPage() {
 
   const setRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error: delErr } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      const { error: delErr } = await supabase.from("user_roles").delete().eq("user_id", userId);
       if (delErr) throw delErr;
-      const { error } = await supabase
-        .from("user_roles")
-        .insert({ user_id: userId, role });
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -55,13 +50,7 @@ function UsersPage() {
   });
 
   const toggleActive = useMutation({
-    mutationFn: async ({
-      userId,
-      active,
-    }: {
-      userId: string;
-      active: boolean;
-    }) => {
+    mutationFn: async ({ userId, active }: { userId: string; active: boolean }) => {
       const { error } = await supabase
         .from("profiles")
         .update({ is_active: active })
@@ -78,7 +67,7 @@ function UsersPage() {
   return (
     <AppShell
       title="მომხმარებლები"
-      subtitle="როლების მართვა. ახალი მომხმარებელი რეგისტრირდება შესვლის გვერდზე."
+      subtitle="როლების მართვა. ახალი მომხმარებელი აგზავნის წვდომის მოთხოვნას შესვლის გვერდიდან — წვდომას იღებს მხოლოდ როლის მინიჭების შემდეგ."
     >
       <div className="overflow-x-auto rounded-md border bg-card">
         <Table>
@@ -93,31 +82,27 @@ function UsersPage() {
           </TableHeader>
           <TableBody>
             {staff.map((u) => {
-              const current: AppRole = u.roles.includes("manager")
+              const current: AppRole | "" = u.roles.includes("manager")
                 ? "manager"
                 : u.roles.includes("dispatcher")
                   ? "dispatcher"
-                  : "technician";
+                  : u.roles.includes("technician")
+                    ? "technician"
+                    : "";
               return (
                 <TableRow key={u.id}>
-                  <TableCell className="text-sm font-medium">
-                    {u.full_name || "—"}
-                  </TableCell>
-                  <TableCell className="hidden text-xs sm:table-cell">
-                    {u.email ?? "—"}
-                  </TableCell>
-                  <TableCell className="hidden text-xs md:table-cell">
-                    {u.phone ?? "—"}
-                  </TableCell>
+                  <TableCell className="text-sm font-medium">{u.full_name || "—"}</TableCell>
+                  <TableCell className="hidden text-xs sm:table-cell">{u.email ?? "—"}</TableCell>
+                  <TableCell className="hidden text-xs md:table-cell">{u.phone ?? "—"}</TableCell>
                   <TableCell>
                     <Select
                       value={current}
-                      onValueChange={(v) =>
-                        setRole.mutate({ userId: u.id, role: v as AppRole })
-                      }
+                      onValueChange={(v) => setRole.mutate({ userId: u.id, role: v as AppRole })}
                     >
-                      <SelectTrigger className="h-8 w-36 text-xs">
-                        <SelectValue />
+                      <SelectTrigger
+                        className={`h-8 w-40 text-xs ${current ? "" : "border-amber-400 text-amber-700"}`}
+                      >
+                        <SelectValue placeholder="⏳ დასადასტურებელი" />
                       </SelectTrigger>
                       <SelectContent>
                         {ROLES.map((r) => (
@@ -147,10 +132,7 @@ function UsersPage() {
             })}
             {staff.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="py-8 text-center text-sm text-muted-foreground"
-                >
+                <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
                   მომხმარებლები არ მოიძებნა
                 </TableCell>
               </TableRow>

@@ -54,13 +54,13 @@ export function useCurrentUser() {
   });
 
   const roles = profileQuery.data?.roles ?? [];
+  // როლის გარეშე მომხმარებელს წვდომა არ აქვს, სანამ მენეჯერი არ დაადასტურებს
+  const isPending = !!profileQuery.data && roles.length === 0;
   const role: AppRole = roles.includes("manager")
     ? "manager"
     : roles.includes("dispatcher")
       ? "dispatcher"
-      : roles.includes("technician")
-        ? "technician"
-        : "dispatcher";
+      : "technician";
 
   return {
     loading: loading || profileQuery.isLoading,
@@ -69,8 +69,9 @@ export function useCurrentUser() {
     email: session?.user.email ?? "",
     profile: profileQuery.data?.profile ?? null,
     role,
-    isManager: role === "manager",
-    isDispatcher: role === "dispatcher" || role === "manager",
-    isTechnician: role === "technician",
+    isPending,
+    isManager: !isPending && role === "manager",
+    isDispatcher: !isPending && (role === "dispatcher" || role === "manager"),
+    isTechnician: !isPending && role === "technician",
   };
 }
