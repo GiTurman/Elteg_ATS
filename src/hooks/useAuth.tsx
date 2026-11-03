@@ -55,7 +55,10 @@ export function useCurrentUser() {
 
   const roles = profileQuery.data?.roles ?? [];
   // როლის გარეშე მომხმარებელს წვდომა არ აქვს, სანამ მენეჯერი არ დაადასტურებს
-  const isPending = !!profileQuery.data && roles.length === 0;
+  // გათიშული თანამშრომელიც ვერ ხედავს სისტემას
+  const isPending =
+    !!profileQuery.data &&
+    (roles.length === 0 || profileQuery.data.profile?.is_active === false);
   const role: AppRole = roles.includes("manager")
     ? "manager"
     : roles.includes("dispatcher")
