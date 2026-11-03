@@ -79,7 +79,7 @@ cd Elteg_ATS && git pull && cd pbx && docker compose up -d --build
 
 ## ხმოვანი შეტყობინებები
 
-იხ. [`sounds/README.md`](sounds/README.md).
+იხ. [`public/sounds/README.md`](../public/sounds/README.md) — ფაილები ერთ ადგილასაა, აპიც და სადგურიც იქიდან კითხულობს.
 
 ## უსაფრთხოება
 

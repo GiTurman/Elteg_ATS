@@ -5,6 +5,7 @@ import { Copy, Eye, EyeOff, Loader2, PhoneCall, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
+import { VoicePromptsCard } from "@/components/telephony/VoicePromptsCard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -301,6 +302,8 @@ function TelephonyPage() {
         <Simulator webhookUrl={webhookUrl} token={token} clients={clients} />
 
         <PbxCard origin={origin || PUBLISHED_ORIGIN} />
+
+        <VoicePromptsCard />
 
         <OperatorsCard />
 

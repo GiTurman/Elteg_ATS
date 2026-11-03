@@ -10,7 +10,7 @@ services:
     env_file: .env
     volumes:
       - recordings:/var/spool/asterisk/monitor
-      - ./sounds:/var/lib/asterisk/sounds/custom:ro
+      - ../public/sounds:/var/lib/asterisk/sounds/custom:ro # იგივე ფაილები, რასაც აპი უკრავს
       - asterisk-keys:/var/lib/asterisk/keys
 
   caddy:
