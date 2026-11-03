@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -84,9 +84,133 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          address: string | null
+          cabin_phone: string | null
+          contact_person: string | null
+          contact_phone_2: string | null
+          created_at: string
+          currency: string | null
+          device_count: string | null
+          email: string | null
+          id: string
+          included_calls: number | null
+          is_active: boolean
+          monthly_fee: number | null
+          name: string
+          notes: string | null
+          package_id: string | null
+          service_note: string | null
+          tax_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          cabin_phone?: string | null
+          contact_person?: string | null
+          contact_phone_2?: string | null
+          created_at?: string
+          currency?: string | null
+          device_count?: string | null
+          email?: string | null
+          id?: string
+          included_calls?: number | null
+          is_active?: boolean
+          monthly_fee?: number | null
+          name: string
+          notes?: string | null
+          package_id?: string | null
+          service_note?: string | null
+          tax_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          cabin_phone?: string | null
+          contact_person?: string | null
+          contact_phone_2?: string | null
+          created_at?: string
+          currency?: string | null
+          device_count?: string | null
+          email?: string | null
+          id?: string
+          included_calls?: number | null
+          is_active?: boolean
+          monthly_fee?: number | null
+          name?: string
+          notes?: string | null
+          package_id?: string | null
+          service_note?: string | null
+          tax_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "tariff_packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incoming_calls: {
+        Row: {
+          caller_number: string | null
+          id: string
+          matched_client_id: string | null
+          matched_object_id: string | null
+          raw: Json | null
+          received_at: string
+          service_call_id: string | null
+          status: string
+        }
+        Insert: {
+          caller_number?: string | null
+          id?: string
+          matched_client_id?: string | null
+          matched_object_id?: string | null
+          raw?: Json | null
+          received_at?: string
+          service_call_id?: string | null
+          status?: string
+        }
+        Update: {
+          caller_number?: string | null
+          id?: string
+          matched_client_id?: string | null
+          matched_object_id?: string | null
+          raw?: Json | null
+          received_at?: string
+          service_call_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incoming_calls_matched_client_id_fkey"
+            columns: ["matched_client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incoming_calls_matched_object_id_fkey"
+            columns: ["matched_object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incoming_calls_service_call_id_fkey"
+            columns: ["service_call_id"]
+            isOneToOne: false
+            referencedRelation: "service_calls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objects: {
         Row: {
           address: string
+          client_id: string | null
           client_name: string | null
           client_phone: string | null
           created_at: string
@@ -103,6 +227,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          client_id?: string | null
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
@@ -119,6 +244,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          client_id?: string | null
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
@@ -133,7 +259,15 @@ export type Database = {
           serial_number?: string | null
           under_contract?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "objects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -165,8 +299,11 @@ export type Database = {
       service_calls: {
         Row: {
           address: string
+          assigned_team_id: string | null
           assigned_to: string | null
           call_no: number
+          caller_number: string | null
+          client_id: string | null
           client_name: string | null
           client_phone: string | null
           closed_at: string | null
@@ -186,13 +323,17 @@ export type Database = {
           service_type: Database["public"]["Enums"]["service_type"]
           site_name: string
           sla_due_at: string | null
+          source: string
           status: Database["public"]["Enums"]["call_status"]
           updated_at: string
         }
         Insert: {
           address: string
+          assigned_team_id?: string | null
           assigned_to?: string | null
           call_no?: number
+          caller_number?: string | null
+          client_id?: string | null
           client_name?: string | null
           client_phone?: string | null
           closed_at?: string | null
@@ -212,13 +353,17 @@ export type Database = {
           service_type: Database["public"]["Enums"]["service_type"]
           site_name: string
           sla_due_at?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["call_status"]
           updated_at?: string
         }
         Update: {
           address?: string
+          assigned_team_id?: string | null
           assigned_to?: string | null
           call_no?: number
+          caller_number?: string | null
+          client_id?: string | null
           client_name?: string | null
           client_phone?: string | null
           closed_at?: string | null
@@ -238,15 +383,30 @@ export type Database = {
           service_type?: Database["public"]["Enums"]["service_type"]
           site_name?: string
           sla_due_at?: string | null
+          source?: string
           status?: Database["public"]["Enums"]["call_status"]
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "service_calls_assigned_team_id_fkey"
+            columns: ["assigned_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "service_calls_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_calls_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
           {
@@ -257,6 +417,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tariff_packages: {
+        Row: {
+          code: string | null
+          created_at: string
+          description: string | null
+          id: string
+          included_services: string | null
+          is_active: boolean
+          name: string
+          price_monthly: number
+          response_sla_hours: number | null
+          sort_order: number
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_services?: string | null
+          is_active?: boolean
+          name: string
+          price_monthly?: number
+          response_sla_hours?: number | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          included_services?: string | null
+          is_active?: boolean
+          name?: string
+          price_monthly?: number
+          response_sla_hours?: number | null
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          id: string
+          profile_id: string
+          team_id: string
+        }
+        Insert: {
+          id?: string
+          profile_id: string
+          team_id: string
+        }
+        Update: {
+          id?: string
+          profile_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
