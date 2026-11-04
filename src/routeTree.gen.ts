@@ -29,6 +29,7 @@ import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCallsCallIdRouteImport } from './routes/_authenticated/calls.$callId'
 import { Route as ApiPublicTelephonyOnDutyRouteImport } from './routes/api/public/telephony/on-duty'
 import { Route as ApiPublicTelephonyPbxConfigRouteImport } from './routes/api/public/telephony/pbx-config'
+import { Route as ApiPublicTelephonyPbxHelloRouteImport } from './routes/api/public/telephony/pbx-hello'
 import { Route as ApiPublicTelephonyWebhookRouteImport } from './routes/api/public/telephony/webhook'
 
 const IndexRoute = IndexRouteImport.update({
@@ -134,6 +135,12 @@ const ApiPublicTelephonyPbxConfigRoute =
     path: '/api/public/telephony/pbx-config',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicTelephonyPbxHelloRoute =
+  ApiPublicTelephonyPbxHelloRouteImport.update({
+    id: '/api/public/telephony/pbx-hello',
+    path: '/api/public/telephony/pbx-hello',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTelephonyWebhookRoute =
   ApiPublicTelephonyWebhookRouteImport.update({
     id: '/api/public/telephony/webhook',
@@ -161,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/calls/$callId': typeof AuthenticatedCallsCallIdRoute
   '/api/public/telephony/on-duty': typeof ApiPublicTelephonyOnDutyRoute
   '/api/public/telephony/pbx-config': typeof ApiPublicTelephonyPbxConfigRoute
+  '/api/public/telephony/pbx-hello': typeof ApiPublicTelephonyPbxHelloRoute
   '/api/public/telephony/webhook': typeof ApiPublicTelephonyWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -183,6 +191,7 @@ export interface FileRoutesByTo {
   '/calls/$callId': typeof AuthenticatedCallsCallIdRoute
   '/api/public/telephony/on-duty': typeof ApiPublicTelephonyOnDutyRoute
   '/api/public/telephony/pbx-config': typeof ApiPublicTelephonyPbxConfigRoute
+  '/api/public/telephony/pbx-hello': typeof ApiPublicTelephonyPbxHelloRoute
   '/api/public/telephony/webhook': typeof ApiPublicTelephonyWebhookRoute
 }
 export interface FileRoutesById {
@@ -207,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/calls/$callId': typeof AuthenticatedCallsCallIdRoute
   '/api/public/telephony/on-duty': typeof ApiPublicTelephonyOnDutyRoute
   '/api/public/telephony/pbx-config': typeof ApiPublicTelephonyPbxConfigRoute
+  '/api/public/telephony/pbx-hello': typeof ApiPublicTelephonyPbxHelloRoute
   '/api/public/telephony/webhook': typeof ApiPublicTelephonyWebhookRoute
 }
 export interface FileRouteTypes {
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/calls/$callId'
     | '/api/public/telephony/on-duty'
     | '/api/public/telephony/pbx-config'
+    | '/api/public/telephony/pbx-hello'
     | '/api/public/telephony/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/calls/$callId'
     | '/api/public/telephony/on-duty'
     | '/api/public/telephony/pbx-config'
+    | '/api/public/telephony/pbx-hello'
     | '/api/public/telephony/webhook'
   id:
     | '__root__'
@@ -276,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/calls/$callId'
     | '/api/public/telephony/on-duty'
     | '/api/public/telephony/pbx-config'
+    | '/api/public/telephony/pbx-hello'
     | '/api/public/telephony/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -285,6 +298,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicTelephonyOnDutyRoute: typeof ApiPublicTelephonyOnDutyRoute
   ApiPublicTelephonyPbxConfigRoute: typeof ApiPublicTelephonyPbxConfigRoute
+  ApiPublicTelephonyPbxHelloRoute: typeof ApiPublicTelephonyPbxHelloRoute
   ApiPublicTelephonyWebhookRoute: typeof ApiPublicTelephonyWebhookRoute
 }
 
@@ -430,6 +444,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTelephonyPbxConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/telephony/pbx-hello': {
+      id: '/api/public/telephony/pbx-hello'
+      path: '/api/public/telephony/pbx-hello'
+      fullPath: '/api/public/telephony/pbx-hello'
+      preLoaderRoute: typeof ApiPublicTelephonyPbxHelloRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/telephony/webhook': {
       id: '/api/public/telephony/webhook'
       path: '/api/public/telephony/webhook'
@@ -494,6 +515,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiPublicTelephonyOnDutyRoute: ApiPublicTelephonyOnDutyRoute,
   ApiPublicTelephonyPbxConfigRoute: ApiPublicTelephonyPbxConfigRoute,
+  ApiPublicTelephonyPbxHelloRoute: ApiPublicTelephonyPbxHelloRoute,
   ApiPublicTelephonyWebhookRoute: ApiPublicTelephonyWebhookRoute,
 }
 export const routeTree = rootRouteImport

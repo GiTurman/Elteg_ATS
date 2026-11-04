@@ -8,7 +8,7 @@ Asterisk 20 (Docker) + Caddy (ავტომატური HTTPS). ოპე�
 ## როგორ მუშაობს
 
 ```
-აბონენტი → 0322 77 02 00 → ოპერატორის SIP ხაზი → სადგური (Asterisk)
+აბონენტი → 0322 07 70 58 → Geonet SIP ხაზი → სადგური (Asterisk)
    → ჩაწერა + „საუბარი იწერება“ (თუ ფაილი არსებობს)
    → რიგი: ხაზზე მყოფი ოპერატორები (აპის ტელეფონის პანელი, „ხაზზე“ ჩართული)
    → QUEUE_TIMEOUT წამში პასუხი არ არის → აპის „ცვლებით“: ხელმძღვანელი → მორიგე ტექნიკოსის მობილური
@@ -26,41 +26,28 @@ Asterisk 20 (Docker) + Caddy (ავტომატური HTTPS). ოპე�
 1. **სერვერი (VPS):** Ubuntu 24.04, 2 GB RAM, საჯარო IP. მაგ. Hetzner CX22 (~€5/თვე) ან ნებისმიერი ქართული ჰოსტინგი.
 2. **დომენი:** მაგ. `pbx.თქვენიდომენი.ge` (DNS A-ჩანაწერი სერვერის IP-ზე).
    დომენი თუ არ გაქვთ: გამოიყენეთ `<IP-ტირეებით>.sslip.io` (მაგ. `203-0-113-10.sslip.io`). უფასოა და DNS არ სჭირდება.
-3. **ოპერატორის SIP ხაზი** ნომერზე 0322 77 02 00: სერვერი, მომხმარებელი, პაროლი.
+3. **SIP ხაზი:** Geonet, ნომერი **0322 07 70 58** (სერვერი 80.83.139.34, მომხმარებელი 20770581 — უკვე ჩაწერილია `.env.example`-ში; პაროლი მხოლოდ სერვერზე).
 
-## დაყენება (ერთხელ, ~15 წუთი)
+## დაყენება — ერთი ბრძანებით (~10 წუთი)
 
-სერვერზე (SSH, root):
+სერვერზე root-ით შესვლის შემდეგ ჩასვით და Enter:
 
 ```bash
-# 1. Docker
-curl -fsSL https://get.docker.com | sh
-
-# 2. კოდი
-git clone https://github.com/GiTurman/Elteg_ATS.git
-cd Elteg_ATS/pbx
-
-# 3. პარამეტრები
-cp .env.example .env
-openssl rand -hex 16            # ← ეს ჩაწერეთ REC_SECRET-ში
-nano .env                       # შეავსეთ: WEBHOOK_TOKEN, PBX_DOMAIN, PUBLIC_IP, REC_SECRET, TRUNK_*
-
-# 4. ფაიერვოლი
-ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp
-ufw allow 10000:10200/udp
-ufw allow from <ოპერატორის-SIP-IP> to any port 5060 proto udp
-ufw --force enable
-
-# 5. გაშვება
-docker compose up -d --build
-docker logs -f gt-ats-asterisk   # უნდა გამოჩნდეს: „GT-ATS: სადგური ეშვება“
+curl -fsSL https://raw.githubusercontent.com/GiTurman/Elteg_ATS/main/pbx/install.sh | bash
 ```
 
-აპში: **ტელეფონია → სატელეფონო სადგური** ველში ჩაწერეთ:
-- სადგურის მისამართი: `wss://<PBX_DOMAIN>/ws`
-- მთავარი ნომერი: `0322770200`
+სკრიპტი გკითხავთ ორ რამეს:
+1. **ვებჰუკის ტოკენი** — აპში: ტელეფონია → ვებჰუკის პარამეტრები → ტოკენი → 👁 → კოპირება.
+2. **Geonet-ის SIP პაროლი** — წერილიდან (ეკრანზე არ გამოჩნდება — ეს ნორმალურია).
+3. დომენზე უბრალოდ დააჭირეთ **Enter** (უფასო `sslip.io`), ან ჩაწერეთ საკუთარი.
+
+დანარჩენს თავად აკეთებს: Docker, კოდი, `.env`, ფაიერვოლი (5060 მხოლოდ Geonet-ისთვის), გაშვება,
+Geonet-ზე რეგისტრაციის შემოწმება. სადგური **თავად აცნობებს აპს** თავის მისამართს (wss://…/ws) —
+აპში ხელით არაფრის ჩაწერა არ არის საჭირო. მთავარი ნომერი აპში უკვე მითითებულია: 0322077058.
 
 შემდეგ ოპერატორები განაახლებენ გვერდს (F5) და ტელეფონის პანელში ჩართავენ **„ხაზზე“**.
+
+განახლება ან ხელახლა გაშვება — იგივე ბრძანება.
 
 ## შემოწმება
 
@@ -74,7 +61,7 @@ docker exec -it gt-ats-asterisk tail -n 50 /var/log/asterisk/pbx-notify.log  # w
 ## განახლება
 
 ```bash
-cd Elteg_ATS && git pull && cd pbx && docker compose up -d --build
+curl -fsSL https://raw.githubusercontent.com/GiTurman/Elteg_ATS/main/pbx/install.sh | bash
 ```
 
 ## ხმოვანი შეტყობინებები

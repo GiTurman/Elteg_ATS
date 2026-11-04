@@ -90,6 +90,14 @@ chmod 640 "$CONF/pjsip_trunk.conf"
 touch "$CONF/pjsip_endpoints.conf" "$CONF/queues_members.conf" "$CONF/extensions_globals.conf"
 /usr/local/bin/pbx-sync || true
 
+# აპს ვაცნობებთ სადგურის WebRTC მისამართს (ფონურად, რომ გაშვება არ შეფერხდეს)
+( for i in 1 2 3 4 5; do
+    curl -fsS --max-time 8 -X POST "${APP_URL%/}/api/public/telephony/pbx-hello" \
+      -H "Content-Type: application/json" -H "X-Webhook-Token: ${WEBHOOK_TOKEN}" \
+      --data "{\"wss_url\":\"wss://${PBX_DOMAIN}/ws\"}" >/dev/null 2>&1 && break
+    sleep 20
+  done ) &
+
 # ყოველ წუთში სინქრონიზაცია
 ( while sleep 60; do /usr/local/bin/pbx-sync || true; done ) &
 

@@ -811,7 +811,7 @@ function PbxCard({ origin }: { origin: string }) {
           <Label>მთავარი ნომერი (გამავალ ზარზე გამოჩნდება)</Label>
           <Input
             className="font-mono text-xs"
-            placeholder="0322770200"
+            placeholder="0322077058"
             value={main}
             onChange={(e) => setMain(e.target.value)}
           />
