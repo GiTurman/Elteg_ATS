@@ -318,7 +318,15 @@ export function SoftphonePanel() {
             <span className="ml-1 font-mono text-xs tabular-nums">
               {mmss(Date.now() - (call.answeredAt ?? Date.now()))}
             </span>
-          ) : null}
+          ) : (
+            <span className="ml-1 text-sm font-semibold">
+              {status === "ready"
+                ? "ტელეფონი"
+                : status === "unavailable"
+                  ? "ტელეფონი (გამორთ.)"
+                  : "ტელეფონი"}
+            </span>
+          )}
         </Button>
       </div>
     </>
