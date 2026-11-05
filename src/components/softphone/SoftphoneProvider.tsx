@@ -250,49 +250,55 @@ export function SoftphoneProvider({
     setStatus("connecting");
     setStatusDetail("სადგურთან დაკავშირება…");
 
-    void import("jssip").then((mod) => {
-      if (stopped) return;
-      const JsSIP = mod.default ?? mod;
-      JsSIP.debug.disable();
-      const socket = new JsSIP.WebSocketInterface(account.wssUrl);
-      const ua = new JsSIP.UA({
-        sockets: [socket],
-        uri: `sip:${account.extension}@${account.domain}`,
-        password: account.password,
-        display_name: account.displayName,
-        register: true,
-        session_timers: false,
-        user_agent: "GT-ATS Softphone",
-      });
-      uaRef.current = ua;
-      ua.on("registered", () => {
-        setStatus("ready");
-        setStatusDetail(`ხაზზე · შიდა ${account.extension}`);
-      });
-      ua.on("unregistered", () => {
-        if (!stopped) {
-          setStatus("connecting");
-          setStatusDetail("კავშირი აღდგება…");
-        }
-      });
-      ua.on("registrationFailed", (e: { cause?: string }) => {
+    void import("jssip")
+      .then((mod) => {
+        if (stopped) return;
+        const JsSIP = mod.default ?? mod;
+        JsSIP.debug.disable();
+        const socket = new JsSIP.WebSocketInterface(account.wssUrl);
+        const ua = new JsSIP.UA({
+          sockets: [socket],
+          uri: `sip:${account.extension}@${account.domain}`,
+          password: account.password,
+          display_name: account.displayName,
+          register: true,
+          session_timers: false,
+          user_agent: "GT-ATS Softphone",
+        });
+        uaRef.current = ua;
+        ua.on("registered", () => {
+          setStatus("ready");
+          setStatusDetail(`ხაზზე · შიდა ${account.extension}`);
+        });
+        ua.on("unregistered", () => {
+          if (!stopped) {
+            setStatus("connecting");
+            setStatusDetail("კავშირი აღდგება…");
+          }
+        });
+        ua.on("registrationFailed", (e: { cause?: string }) => {
+          setStatus("error");
+          setStatusDetail(`რეგისტრაცია ვერ მოხერხდა${e.cause ? `: ${e.cause}` : ""}`);
+        });
+        ua.on("disconnected", () => {
+          if (!stopped) {
+            setStatus("connecting");
+            setStatusDetail("სადგურთან კავშირი გაწყდა — ხელახლა ვუკავშირდებით…");
+          }
+        });
+        ua.on("newRTCSession", (data: { session: RTCSession; originator: "local" | "remote" }) => {
+          if (data.originator !== "remote") return;
+          const s = data.session;
+          const num = s.remote_identity?.uri?.user ?? "უცნობი";
+          bindSession(s, "incoming", num, s.remote_identity?.display_name || null);
+        });
+        ua.start();
+      })
+      .catch((e: unknown) => {
+        console.error("[softphone] JsSIP load failed", e);
         setStatus("error");
-        setStatusDetail(`რეგისტრაცია ვერ მოხერხდა${e.cause ? `: ${e.cause}` : ""}`);
+        setStatusDetail("ტელეფონის მოდული ვერ ჩაიტვირთა — განაახლეთ გვერდი (F5)");
       });
-      ua.on("disconnected", () => {
-        if (!stopped) {
-          setStatus("connecting");
-          setStatusDetail("სადგურთან კავშირი გაწყდა — ხელახლა ვუკავშირდებით…");
-        }
-      });
-      ua.on("newRTCSession", (data: { session: RTCSession; originator: "local" | "remote" }) => {
-        if (data.originator !== "remote") return;
-        const s = data.session;
-        const num = s.remote_identity?.uri?.user ?? "უცნობი";
-        bindSession(s, "incoming", num, s.remote_identity?.display_name || null);
-      });
-      ua.start();
-    });
 
     return () => {
       stopped = true;
