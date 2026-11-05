@@ -20,10 +20,13 @@ jq -r '.users[]
   | "[\(.extension)](webrtc-op)\nauth = \(.extension)\naors = \(.extension)\ncallerid = \"\($name)\" <\(.extension)>\n\n[\(.extension)]\ntype = auth\nauth_type = userpass\nusername = \(.extension)\npassword = \(.password)\n\n[\(.extension)]\ntype = aor\nmax_contacts = 3\nremove_existing = yes\nremove_unavailable = yes\nqualify_frequency = 25\n"' \
   "$tmp/cfg.json" > "$tmp/pjsip_endpoints.conf"
 
+# ოპერატორები (penalty 0) რეკავს პირველ რიგში; მენეჯერი/ხელმძღვანელი (penalty 1) — მხოლოდ მაშინ,
+# როცა ხაზზე არც ერთი ოპერატორი არ არის თავისუფალი (მცირე გუნდისთვის ავტომატური სარეზერვო).
 jq -r '.users[]
-  | select(.role == "dispatcher" and (.extension | test("^[0-9]{2,6}$")))
+  | select((.role == "dispatcher" or .role == "manager") and (.extension | test("^[0-9]{2,6}$")))
   | (.name | gsub("[\",;\\\\\\r\\n]"; " ")) as $name
-  | "member => PJSIP/\(.extension),0,\($name),PJSIP/\(.extension)"' \
+  | (if .role == "dispatcher" then 0 else 1 end) as $pen
+  | "member => PJSIP/\(.extension),\($pen),\($name),PJSIP/\(.extension)"' \
   "$tmp/cfg.json" > "$tmp/queues_members.conf"
 
 main="${MAIN_NUMBER:-}"
