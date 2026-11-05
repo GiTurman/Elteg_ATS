@@ -69,13 +69,13 @@ say "პარამეტრები"
 tok=$(get_env WEBHOOK_TOKEN)
 if [ -z "$tok" ]; then
   echo "აპში: ტელეფონია → ვებჰუკის პარამეტრები → ტოკენი → თვალის ხატულა → კოპირება" > "$TTY"
-  tok=$(ask "ჩასვით ვებჰუკის ტოკენი" "" secret)
+  tok=$(ask "ჩასვით ვებჰუკის ტოკენი (მარჯვენა ღილაკი ან Ctrl+V, მერე Enter)" "")
   [ -n "$tok" ] || die "ტოკენი აუცილებელია"
   set_env WEBHOOK_TOKEN "$tok"
 fi
 pass=$(get_env TRUNK_PASS)
 if [ -z "$pass" ]; then
-  pass=$(ask "Geonet-ის SIP პაროლი (წერილიდან)" "" secret)
+  pass=$(ask "Geonet-ის SIP პაროლი (წერილიდან; ჩასმის შემდეგ Enter)" "")
   [ -n "$pass" ] || die "SIP პაროლი აუცილებელია"
   set_env TRUNK_PASS "$pass"
 fi
