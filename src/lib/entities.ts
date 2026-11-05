@@ -36,6 +36,8 @@ export type Client = {
   monthly_fee: number | null;
   currency: string | null;
   included_calls: number | null;
+  /** გამოძახებების რეჟიმი (0008 მიგრაცია) */
+  calls_mode?: "limited" | "unlimited" | "working_hours" | "extra_charge" | null;
   device_count: string | null;
   service_note: string | null;
 };

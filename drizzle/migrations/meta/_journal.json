@@ -57,6 +57,13 @@
       "when": 1793810000000,
       "tag": "0007_sms_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793820000000,
+      "tag": "0008_package_call_limits",
+      "breakpoints": true
     }
   ]
 }

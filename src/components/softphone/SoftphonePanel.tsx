@@ -25,6 +25,7 @@ import { normalizeGePhone } from "@/lib/telephony";
 import { cn } from "@/lib/utils";
 
 import { useSoftphone } from "./SoftphoneProvider";
+import { PackageUsage } from "@/components/calls/PackageUsage";
 
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
 
@@ -50,11 +51,17 @@ function useCallerInfo(number: string | null) {
     const n = normalizeGePhone(number);
     if (!n) return null;
     const cabin = clients.find((c) => normalizeGePhone(c.cabin_phone) === n);
-    if (cabin) return { name: cabin.name, address: cabin.address, cabin: true };
+    if (cabin) return { id: cabin.id, name: cabin.name, address: cabin.address, cabin: true };
     const c = clients.find((x) => normalizeGePhone(x.contact_phone_2) === n);
-    if (c) return { name: c.name, address: c.address, cabin: false };
+    if (c) return { id: c.id, name: c.name, address: c.address, cabin: false };
     const o = objects.find((x) => normalizeGePhone(x.client_phone) === n);
-    if (o) return { name: o.client_name ?? o.name, address: o.address, cabin: false };
+    if (o)
+      return {
+        id: (o as { client_id?: string | null }).client_id ?? null,
+        name: o.client_name ?? o.name,
+        address: o.address,
+        cabin: false,
+      };
     return null;
   }, [number, clients, objects]);
 }
@@ -110,6 +117,7 @@ export function SoftphonePanel() {
                   ? `${info.name}${info.address ? ` · ${info.address}` : ""}`
                   : "უცნობი აბონენტი"}
               </div>
+              {info?.id ? <PackageUsage clientId={info.id} compact className="mt-2" /> : null}
             </div>
             <div className="flex justify-center gap-3">
               <Button
@@ -177,6 +185,7 @@ export function SoftphonePanel() {
                     {info?.cabin ? "🚨 კაბინა · " : ""}
                     {info?.name ?? "უცნობი აბონენტი"}
                   </div>
+                  {info?.id ? <PackageUsage clientId={info.id} compact className="mt-2" /> : null}
                 </div>
                 {call.phase !== "ended" ? (
                   <>

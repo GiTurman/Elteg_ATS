@@ -7,6 +7,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { PackageUsage } from "@/components/calls/PackageUsage";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Command,
@@ -335,6 +336,8 @@ export function EditCallDialog({
               />
             </div>
           </div>
+
+          <PackageUsage clientId={form.clientId || null} objectId={form.objectId || null} />
 
           {!form.clientId ? (
             <label className="flex items-start gap-2 rounded-md border border-dashed p-3 text-sm">

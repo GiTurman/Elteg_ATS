@@ -18,6 +18,7 @@ import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedIncomingRouteImport } from './routes/_authenticated/incoming'
 import { Route as AuthenticatedObjectsRouteImport } from './routes/_authenticated/objects'
+import { Route as AuthenticatedPackageUsageRouteImport } from './routes/_authenticated/package-usage'
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedShiftsRouteImport } from './routes/_authenticated/shifts'
@@ -78,6 +79,12 @@ const AuthenticatedObjectsRoute = AuthenticatedObjectsRouteImport.update({
   path: '/objects',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPackageUsageRoute =
+  AuthenticatedPackageUsageRouteImport.update({
+    id: '/package-usage',
+    path: '/package-usage',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/incoming': typeof AuthenticatedIncomingRoute
   '/objects': typeof AuthenticatedObjectsRoute
+  '/package-usage': typeof AuthenticatedPackageUsageRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/shifts': typeof AuthenticatedShiftsRoute
@@ -187,6 +195,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/incoming': typeof AuthenticatedIncomingRoute
   '/objects': typeof AuthenticatedObjectsRoute
+  '/package-usage': typeof AuthenticatedPackageUsageRoute
   '/reports': typeof AuthenticatedReportsRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/shifts': typeof AuthenticatedShiftsRoute
@@ -213,6 +222,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/incoming': typeof AuthenticatedIncomingRoute
   '/_authenticated/objects': typeof AuthenticatedObjectsRoute
+  '/_authenticated/package-usage': typeof AuthenticatedPackageUsageRoute
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/shifts': typeof AuthenticatedShiftsRoute
@@ -239,6 +249,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/incoming'
     | '/objects'
+    | '/package-usage'
     | '/reports'
     | '/schedule'
     | '/shifts'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/incoming'
     | '/objects'
+    | '/package-usage'
     | '/reports'
     | '/schedule'
     | '/shifts'
@@ -288,6 +300,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/incoming'
     | '/_authenticated/objects'
+    | '/_authenticated/package-usage'
     | '/_authenticated/reports'
     | '/_authenticated/schedule'
     | '/_authenticated/shifts'
@@ -377,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/objects'
       fullPath: '/objects'
       preLoaderRoute: typeof AuthenticatedObjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/package-usage': {
+      id: '/_authenticated/package-usage'
+      path: '/package-usage'
+      fullPath: '/package-usage'
+      preLoaderRoute: typeof AuthenticatedPackageUsageRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/reports': {
@@ -487,6 +507,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIncomingRoute: typeof AuthenticatedIncomingRoute
   AuthenticatedObjectsRoute: typeof AuthenticatedObjectsRoute
+  AuthenticatedPackageUsageRoute: typeof AuthenticatedPackageUsageRoute
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedShiftsRoute: typeof AuthenticatedShiftsRoute
@@ -506,6 +527,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIncomingRoute: AuthenticatedIncomingRoute,
   AuthenticatedObjectsRoute: AuthenticatedObjectsRoute,
+  AuthenticatedPackageUsageRoute: AuthenticatedPackageUsageRoute,
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedShiftsRoute: AuthenticatedShiftsRoute,

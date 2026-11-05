@@ -50,6 +50,7 @@ import {
   type ServiceType,
 } from "@/lib/domain";
 import { callsQuery, objectsQuery, staffQuery } from "@/lib/queries";
+import { PackageUsage } from "@/components/calls/PackageUsage";
 
 export const Route = createFileRoute("/_authenticated/calls/")({
   head: () => ({
@@ -371,6 +372,7 @@ function CallsPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <PackageUsage clientId={form.client_id || null} objectId={form.object_id || null} />
             </div>
 
             <div className="grid gap-1.5">

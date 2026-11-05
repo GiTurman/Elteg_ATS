@@ -31,7 +31,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { clientsQuery, dbx, tariffsQuery } from "@/lib/entities";
+import { clientsQuery, dbx, tariffsQuery, type Client } from "@/lib/entities";
+import { CALLS_MODES, callsModeShort, type CallsMode } from "@/lib/packageUsage";
 
 export const Route = createFileRoute("/_authenticated/clients")({
   head: () => ({
@@ -54,6 +55,8 @@ const empty = {
   package_id: "",
   monthly_fee: "",
   currency: "GEL",
+  calls_mode: "" as CallsMode | "",
+  included_calls: "",
 };
 
 function ClientsPage() {
@@ -65,6 +68,31 @@ function ClientsPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ ...empty });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const openNew = () => {
+    setEditingId(null);
+    setForm({ ...empty });
+    setOpen(true);
+  };
+  const openEdit = (c: Client) => {
+    setEditingId(c.id);
+    setForm({
+      name: c.name,
+      tax_id: c.tax_id ?? "",
+      cabin_phone: c.cabin_phone ?? "",
+      contact_phone_2: c.contact_phone_2 ?? "",
+      contact_person: c.contact_person ?? "",
+      email: c.email ?? "",
+      address: c.address ?? "",
+      package_id: c.package_id ?? "",
+      monthly_fee: c.monthly_fee != null ? String(c.monthly_fee) : "",
+      currency: c.currency ?? "GEL",
+      calls_mode: c.calls_mode ?? (c.included_calls != null ? "limited" : ""),
+      included_calls: c.included_calls != null ? String(c.included_calls) : "",
+    });
+    setOpen(true);
+  };
 
   const pkgName = (id: string | null) =>
     packages.find((p) => p.id === id)?.name ?? "—";
@@ -82,7 +110,10 @@ function ClientsPage() {
   const create = useMutation({
     mutationFn: async () => {
       if (!form.name.trim()) throw new Error("დასახელება სავალდებულოა");
-      const { error } = await dbx.from("clients").insert({
+      const limit = form.included_calls.trim() ? Number(form.included_calls) : null;
+      if (form.calls_mode === "limited" && (limit == null || !Number.isInteger(limit) || limit < 0))
+        throw new Error("მიუთითეთ თვეში გამოძახებების რაოდენობა");
+      const payload = {
         name: form.name.trim(),
         tax_id: form.tax_id || null,
         cabin_phone: form.cabin_phone || null,
@@ -93,14 +124,31 @@ function ClientsPage() {
         package_id: form.package_id || null,
         monthly_fee: form.monthly_fee ? Number(form.monthly_fee) : null,
         currency: form.currency || null,
-      });
+        calls_mode: form.calls_mode || null,
+        included_calls: form.calls_mode === "limited" ? limit : null,
+      };
+      const write = (p: Record<string, unknown>) =>
+        editingId
+          ? dbx.from("clients").update(p).eq("id", editingId)
+          : dbx.from("clients").insert(p);
+      let { error } = await write(payload);
+      // ბაზის 0008 განახლებამდე calls_mode სვეტი ჯერ არ არსებობს
+      if (error && /calls_mode/.test(error.message)) {
+        const { calls_mode: _omit, ...rest } = payload;
+        void _omit;
+        ({ error } = await write({
+          ...rest,
+          included_calls: form.included_calls.trim() ? Number(form.included_calls) : null,
+        }));
+      }
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false);
+      toast.success(editingId ? "კლიენტი განახლდა" : "კლიენტი დაემატა");
       setForm({ ...empty });
-      toast.success("კლიენტი დაემატა");
+      setEditingId(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -111,7 +159,7 @@ function ClientsPage() {
       subtitle={`სულ: ${clients.length}`}
       actions={
         isDispatcher ? (
-          <Button size="sm" onClick={() => setOpen(true)}>
+          <Button size="sm" onClick={openNew}>
             <Plus className="size-4" /> კლიენტის დამატება
           </Button>
         ) : null
@@ -137,11 +185,16 @@ function ClientsPage() {
               <TableHead className="hidden lg:table-cell">პაკეტი</TableHead>
               <TableHead>ფასი</TableHead>
               <TableHead className="hidden md:table-cell">დანადგარი</TableHead>
+              <TableHead className="hidden lg:table-cell">გამოძახება/თვე</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.map((c) => (
-              <TableRow key={c.id}>
+              <TableRow
+                key={c.id}
+                className={isDispatcher ? "cursor-pointer" : undefined}
+                onClick={isDispatcher ? () => openEdit(c) : undefined}
+              >
                 <TableCell className="max-w-[220px]">
                   <div className="truncate text-sm font-medium">{c.name}</div>
                   <div className="truncate text-xs text-muted-foreground">
@@ -165,12 +218,19 @@ function ClientsPage() {
                 <TableCell className="hidden text-xs md:table-cell">
                   {c.device_count ?? "—"}
                 </TableCell>
+                <TableCell className="hidden text-xs lg:table-cell">
+                  {c.calls_mode === "limited" || (!c.calls_mode && c.included_calls != null)
+                    ? `${c.included_calls ?? 0}`
+                    : c.calls_mode
+                      ? callsModeShort[c.calls_mode]
+                      : "—"}
+                </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="py-8 text-center text-sm text-muted-foreground"
                 >
                   კლიენტები არ მოიძებნა
@@ -184,7 +244,7 @@ function ClientsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>ახალი კლიენტი</DialogTitle>
+            <DialogTitle>{editingId ? "კლიენტის რედაქტირება" : "ახალი კლიენტი"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
@@ -293,6 +353,41 @@ function ClientsPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label>გამოძახებები პაკეტით</Label>
+                <Select
+                  value={form.calls_mode || "none"}
+                  onValueChange={(v) =>
+                    setForm((f) => ({ ...f, calls_mode: v === "none" ? "" : (v as CallsMode) }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">არ არის მითითებული</SelectItem>
+                    {CALLS_MODES.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.calls_mode === "limited" ? (
+                <div className="grid gap-1.5">
+                  <Label>გამოძახება თვეში *</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={form.included_calls}
+                    onChange={(e) => setForm((f) => ({ ...f, included_calls: e.target.value }))}
+                  />
+                </div>
+              ) : null}
+            </div>
+
             <div className="grid gap-1.5">
               <Label>მისამართი</Label>
               <Input
@@ -308,7 +403,7 @@ function ClientsPage() {
               გაუქმება
             </Button>
             <Button onClick={() => create.mutate()} disabled={create.isPending}>
-              {create.isPending ? "ინახება…" : "დამატება"}
+              {create.isPending ? "ინახება…" : editingId ? "შენახვა" : "დამატება"}
             </Button>
           </DialogFooter>
         </DialogContent>

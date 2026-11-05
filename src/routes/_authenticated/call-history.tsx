@@ -57,6 +57,7 @@ import { clientsQuery, dbx } from "@/lib/entities";
 import { objectsQuery, staffQuery } from "@/lib/queries";
 import { normalizeGePhone } from "@/lib/telephony";
 import { cn } from "@/lib/utils";
+import { PackageUsage } from "@/components/calls/PackageUsage";
 
 export const Route = createFileRoute("/_authenticated/call-history")({
   head: () => ({
@@ -781,6 +782,8 @@ function CallDetail({
                 </div>
               ))}
             </dl>
+
+            <PackageUsage clientId={log.matched_client_id} objectId={log.matched_object_id} />
 
             {log.recording_url ? (
               <div className="grid gap-1">

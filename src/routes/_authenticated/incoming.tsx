@@ -19,6 +19,7 @@ import {
 } from "@/lib/entities";
 import { objectsQuery } from "@/lib/queries";
 import { cn } from "@/lib/utils";
+import { PackageUsage } from "@/components/calls/PackageUsage";
 
 export const Route = createFileRoute("/_authenticated/incoming")({
   head: () => ({
@@ -180,6 +181,11 @@ function IncomingPage() {
                     {" · "}
                     {formatDateTime(ic.received_at)}
                   </div>
+                  <PackageUsage
+                    clientId={ic.matched_client_id}
+                    objectId={ic.matched_object_id}
+                    className="mt-2 max-w-md"
+                  />
                 </div>
                 {isDispatcher ? (
                   <div className="flex gap-2">

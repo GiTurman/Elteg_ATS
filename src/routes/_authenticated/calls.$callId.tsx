@@ -31,6 +31,7 @@ import {
   type CallStatus,
 } from "@/lib/domain";
 import { historyQuery, notesQuery, staffQuery } from "@/lib/queries";
+import { PackageUsage } from "@/components/calls/PackageUsage";
 
 const callQuery = (id: string) =>
   queryOptions({
@@ -206,6 +207,10 @@ function CallDetailPage() {
               </span>
             </CardContent>
           </Card>
+
+          {callExtra.client_id || call.object_id ? (
+            <PackageUsage clientId={callExtra.client_id ?? null} objectId={call.object_id} />
+          ) : null}
 
           {isDispatcher && !callExtra.client_id && !call.object_id ? (
             <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/30">
