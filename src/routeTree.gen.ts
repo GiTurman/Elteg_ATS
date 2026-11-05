@@ -14,7 +14,6 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCallCenterRouteImport } from './routes/_authenticated/call-center'
 import { Route as AuthenticatedCallHistoryRouteImport } from './routes/_authenticated/call-history'
-import { Route as AuthenticatedCallsRouteImport } from './routes/_authenticated/calls'
 import { Route as AuthenticatedClientsRouteImport } from './routes/_authenticated/clients'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedIncomingRouteImport } from './routes/_authenticated/incoming'
@@ -26,6 +25,7 @@ import { Route as AuthenticatedTariffsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedTeamsRouteImport } from './routes/_authenticated/teams'
 import { Route as AuthenticatedTelephonyRouteImport } from './routes/_authenticated/telephony'
 import { Route as AuthenticatedUsersRouteImport } from './routes/_authenticated/users'
+import { Route as AuthenticatedCallsIndexRouteImport } from './routes/_authenticated/calls.index'
 import { Route as AuthenticatedCallsCallIdRouteImport } from './routes/_authenticated/calls.$callId'
 import { Route as ApiPublicTelephonyOnDutyRouteImport } from './routes/api/public/telephony/on-duty'
 import { Route as ApiPublicTelephonyPbxConfigRouteImport } from './routes/api/public/telephony/pbx-config'
@@ -57,11 +57,6 @@ const AuthenticatedCallHistoryRoute =
     path: '/call-history',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCallsRoute = AuthenticatedCallsRouteImport.update({
-  id: '/calls',
-  path: '/calls',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedClientsRoute = AuthenticatedClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
@@ -117,11 +112,16 @@ const AuthenticatedUsersRoute = AuthenticatedUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCallsIndexRoute = AuthenticatedCallsIndexRouteImport.update({
+  id: '/calls/',
+  path: '/calls/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCallsCallIdRoute =
   AuthenticatedCallsCallIdRouteImport.update({
-    id: '/$callId',
-    path: '/$callId',
-    getParentRoute: () => AuthenticatedCallsRoute,
+    id: '/calls/$callId',
+    path: '/calls/$callId',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const ApiPublicTelephonyOnDutyRoute =
   ApiPublicTelephonyOnDutyRouteImport.update({
@@ -153,7 +153,6 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/call-center': typeof AuthenticatedCallCenterRoute
   '/call-history': typeof AuthenticatedCallHistoryRoute
-  '/calls': typeof AuthenticatedCallsRouteWithChildren
   '/clients': typeof AuthenticatedClientsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/incoming': typeof AuthenticatedIncomingRoute
@@ -166,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/telephony': typeof AuthenticatedTelephonyRoute
   '/users': typeof AuthenticatedUsersRoute
   '/calls/$callId': typeof AuthenticatedCallsCallIdRoute
+  '/calls/': typeof AuthenticatedCallsIndexRoute
   '/api/public/telephony/on-duty': typeof ApiPublicTelephonyOnDutyRoute
   '/api/public/telephony/pbx-config': typeof ApiPublicTelephonyPbxConfigRoute
   '/api/public/telephony/pbx-hello': typeof ApiPublicTelephonyPbxHelloRoute
@@ -176,7 +176,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/call-center': typeof AuthenticatedCallCenterRoute
   '/call-history': typeof AuthenticatedCallHistoryRoute
-  '/calls': typeof AuthenticatedCallsRouteWithChildren
   '/clients': typeof AuthenticatedClientsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/incoming': typeof AuthenticatedIncomingRoute
@@ -189,6 +188,7 @@ export interface FileRoutesByTo {
   '/telephony': typeof AuthenticatedTelephonyRoute
   '/users': typeof AuthenticatedUsersRoute
   '/calls/$callId': typeof AuthenticatedCallsCallIdRoute
+  '/calls': typeof AuthenticatedCallsIndexRoute
   '/api/public/telephony/on-duty': typeof ApiPublicTelephonyOnDutyRoute
   '/api/public/telephony/pbx-config': typeof ApiPublicTelephonyPbxConfigRoute
   '/api/public/telephony/pbx-hello': typeof ApiPublicTelephonyPbxHelloRoute
@@ -201,7 +201,6 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/call-center': typeof AuthenticatedCallCenterRoute
   '/_authenticated/call-history': typeof AuthenticatedCallHistoryRoute
-  '/_authenticated/calls': typeof AuthenticatedCallsRouteWithChildren
   '/_authenticated/clients': typeof AuthenticatedClientsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/incoming': typeof AuthenticatedIncomingRoute
@@ -214,6 +213,7 @@ export interface FileRoutesById {
   '/_authenticated/telephony': typeof AuthenticatedTelephonyRoute
   '/_authenticated/users': typeof AuthenticatedUsersRoute
   '/_authenticated/calls/$callId': typeof AuthenticatedCallsCallIdRoute
+  '/_authenticated/calls/': typeof AuthenticatedCallsIndexRoute
   '/api/public/telephony/on-duty': typeof ApiPublicTelephonyOnDutyRoute
   '/api/public/telephony/pbx-config': typeof ApiPublicTelephonyPbxConfigRoute
   '/api/public/telephony/pbx-hello': typeof ApiPublicTelephonyPbxHelloRoute
@@ -226,7 +226,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/call-center'
     | '/call-history'
-    | '/calls'
     | '/clients'
     | '/dashboard'
     | '/incoming'
@@ -239,6 +238,7 @@ export interface FileRouteTypes {
     | '/telephony'
     | '/users'
     | '/calls/$callId'
+    | '/calls/'
     | '/api/public/telephony/on-duty'
     | '/api/public/telephony/pbx-config'
     | '/api/public/telephony/pbx-hello'
@@ -249,7 +249,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/call-center'
     | '/call-history'
-    | '/calls'
     | '/clients'
     | '/dashboard'
     | '/incoming'
@@ -262,6 +261,7 @@ export interface FileRouteTypes {
     | '/telephony'
     | '/users'
     | '/calls/$callId'
+    | '/calls'
     | '/api/public/telephony/on-duty'
     | '/api/public/telephony/pbx-config'
     | '/api/public/telephony/pbx-hello'
@@ -273,7 +273,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/call-center'
     | '/_authenticated/call-history'
-    | '/_authenticated/calls'
     | '/_authenticated/clients'
     | '/_authenticated/dashboard'
     | '/_authenticated/incoming'
@@ -286,6 +285,7 @@ export interface FileRouteTypes {
     | '/_authenticated/telephony'
     | '/_authenticated/users'
     | '/_authenticated/calls/$callId'
+    | '/_authenticated/calls/'
     | '/api/public/telephony/on-duty'
     | '/api/public/telephony/pbx-config'
     | '/api/public/telephony/pbx-hello'
@@ -337,13 +337,6 @@ declare module '@tanstack/react-router' {
       path: '/call-history'
       fullPath: '/call-history'
       preLoaderRoute: typeof AuthenticatedCallHistoryRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/calls': {
-      id: '/_authenticated/calls'
-      path: '/calls'
-      fullPath: '/calls'
-      preLoaderRoute: typeof AuthenticatedCallsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/clients': {
@@ -423,12 +416,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/calls/': {
+      id: '/_authenticated/calls/'
+      path: '/calls'
+      fullPath: '/calls/'
+      preLoaderRoute: typeof AuthenticatedCallsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/calls/$callId': {
       id: '/_authenticated/calls/$callId'
-      path: '/$callId'
+      path: '/calls/$callId'
       fullPath: '/calls/$callId'
       preLoaderRoute: typeof AuthenticatedCallsCallIdRouteImport
-      parentRoute: typeof AuthenticatedCallsRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/telephony/on-duty': {
       id: '/api/public/telephony/on-duty'
@@ -461,21 +461,9 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface AuthenticatedCallsRouteChildren {
-  AuthenticatedCallsCallIdRoute: typeof AuthenticatedCallsCallIdRoute
-}
-
-const AuthenticatedCallsRouteChildren: AuthenticatedCallsRouteChildren = {
-  AuthenticatedCallsCallIdRoute: AuthenticatedCallsCallIdRoute,
-}
-
-const AuthenticatedCallsRouteWithChildren =
-  AuthenticatedCallsRoute._addFileChildren(AuthenticatedCallsRouteChildren)
-
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCallCenterRoute: typeof AuthenticatedCallCenterRoute
   AuthenticatedCallHistoryRoute: typeof AuthenticatedCallHistoryRoute
-  AuthenticatedCallsRoute: typeof AuthenticatedCallsRouteWithChildren
   AuthenticatedClientsRoute: typeof AuthenticatedClientsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedIncomingRoute: typeof AuthenticatedIncomingRoute
@@ -487,12 +475,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
   AuthenticatedTelephonyRoute: typeof AuthenticatedTelephonyRoute
   AuthenticatedUsersRoute: typeof AuthenticatedUsersRoute
+  AuthenticatedCallsCallIdRoute: typeof AuthenticatedCallsCallIdRoute
+  AuthenticatedCallsIndexRoute: typeof AuthenticatedCallsIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCallCenterRoute: AuthenticatedCallCenterRoute,
   AuthenticatedCallHistoryRoute: AuthenticatedCallHistoryRoute,
-  AuthenticatedCallsRoute: AuthenticatedCallsRouteWithChildren,
   AuthenticatedClientsRoute: AuthenticatedClientsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedIncomingRoute: AuthenticatedIncomingRoute,
@@ -504,6 +493,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
   AuthenticatedTelephonyRoute: AuthenticatedTelephonyRoute,
   AuthenticatedUsersRoute: AuthenticatedUsersRoute,
+  AuthenticatedCallsCallIdRoute: AuthenticatedCallsCallIdRoute,
+  AuthenticatedCallsIndexRoute: AuthenticatedCallsIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

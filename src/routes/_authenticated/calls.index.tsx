@@ -50,7 +50,7 @@ import {
 } from "@/lib/domain";
 import { callsQuery, objectsQuery, staffQuery } from "@/lib/queries";
 
-export const Route = createFileRoute("/_authenticated/calls")({
+export const Route = createFileRoute("/_authenticated/calls/")({
   head: () => ({
     meta: [
       { title: "გამოძახებები — ლიფტსერვისი" },
