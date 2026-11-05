@@ -17,7 +17,7 @@ export default defineConfig({
       {
         name: "gt-events-polyfill",
         enforce: "pre",
-        resolveId(source: string, importer?: string, options?: { ssr?: boolean }) {
+        resolveId(source: string, importer?: string, options?: { ssr?: boolean | undefined }) {
           if (options?.ssr) return null;
           if ((source === "events" || source === "node:events") && importer?.includes("jssip")) {
             return EVENTS_POLYFILL;
