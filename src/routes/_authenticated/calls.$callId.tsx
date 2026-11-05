@@ -1,15 +1,11 @@
 import { useState, type ReactNode } from "react";
-import {
-  queryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Clock } from "lucide-react";
+import { AlertCircle, ArrowLeft, Clock, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
+import { EditCallDialog } from "@/components/calls/EditCallDialog";
 import { PriorityBadge, SlaBadge, StatusBadge } from "@/components/badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,20 +82,19 @@ function CallDetailPage() {
   const { data: clients = [] } = useQuery(clientsQuery);
 
   const technicians = staff.filter((s) => s.roles.includes("technician"));
-  const nameOf = (id: string | null) =>
-    staff.find((s) => s.id === id)?.full_name ?? "—";
+  const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.full_name ?? "—";
 
   const callExtra = (call ?? {}) as {
     assigned_team_id?: string | null;
     client_id?: string | null;
   };
-  const clientName =
-    clients.find((c) => c.id === callExtra.client_id)?.name ?? null;
+  const clientName = clients.find((c) => c.id === callExtra.client_id)?.name ?? null;
 
   const [assignee, setAssignee] = useState<string>("");
   const [team, setTeam] = useState<string>("");
   const [scheduled, setScheduled] = useState<string>("");
   const [note, setNote] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["service_call", callId] });
@@ -109,10 +104,7 @@ function CallDetailPage() {
 
   const setStatus = useMutation({
     mutationFn: async (status: CallStatus) => {
-      const { error } = await supabase
-        .from("service_calls")
-        .update({ status })
-        .eq("id", callId);
+      const { error } = await supabase.from("service_calls").update({ status }).eq("id", callId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -171,9 +163,7 @@ function CallDetailPage() {
   if (!call) {
     return (
       <AppShell title="გამოძახება">
-        <p className="text-sm text-muted-foreground">
-          გამოძახება ვერ მოიძებნა.
-        </p>
+        <p className="text-sm text-muted-foreground">გამოძახება ვერ მოიძებნა.</p>
         <Button asChild variant="outline" className="mt-3">
           <Link to="/calls">
             <ArrowLeft className="size-4" /> სიაში დაბრუნება
@@ -185,9 +175,7 @@ function CallDetailPage() {
 
   const currentIdx = STATUS_FLOW.indexOf(call.status);
   const nextStatus =
-    currentIdx >= 0 && currentIdx < STATUS_FLOW.length - 1
-      ? STATUS_FLOW[currentIdx + 1]
-      : null;
+    currentIdx >= 0 && currentIdx < STATUS_FLOW.length - 1 ? STATUS_FLOW[currentIdx + 1] : null;
   const closed = call.status === "dakhuruli" || call.status === "gaukmebuli";
   const canEdit = isDispatcher || role === "technician";
 
@@ -216,34 +204,45 @@ function CallDetailPage() {
             </CardContent>
           </Card>
 
+          {isDispatcher && !callExtra.client_id && !call.object_id ? (
+            <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/30">
+              <CardContent className="flex flex-wrap items-center gap-3 p-4 text-sm">
+                <AlertCircle className="size-4 text-amber-600" />
+                <span className="flex-1">
+                  გამოძახება კლიენტზე/ობიექტზე არ არის მიბმული
+                  {call.caller_number ? ` (დამრეკი: ${call.caller_number})` : ""}. შეავსეთ
+                  მონაცემები.
+                </span>
+                <Button size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil className="size-3.5" /> შევსება
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="text-sm">დეტალები</CardTitle>
+              {isDispatcher ? (
+                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil className="size-3.5" /> რედაქტირება
+                </Button>
+              ) : null}
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
+              <Field label="ობიექტი" value={call.site_name} />
+              <Field label="დამრეკის ნომერი" value={call.caller_number} />
               <Field label="მისამართი" value={call.address} />
               <Field label="კლიენტი" value={clientName} />
-              <Field
-                label="ტიპი"
-                value={serviceTypeLabel[call.service_type]}
-              />
+              <Field label="ტიპი" value={serviceTypeLabel[call.service_type]} />
               <Field label="ლიფტის კოდი" value={call.elevator_code} />
               <Field label="ქარხნული ნომერი" value={call.serial_number} />
               <Field label="დამკვეთი" value={call.client_name} />
               <Field label="საკონტაქტო" value={call.client_phone} />
-              <Field
-                label="დაგეგმილი დრო"
-                value={formatDateTime(call.scheduled_at)}
-              />
+              <Field label="დაგეგმილი დრო" value={formatDateTime(call.scheduled_at)} />
               <Field label="SLA ვადა" value={formatDateTime(call.sla_due_at)} />
-              <Field
-                label="რეაგირება"
-                value={formatDateTime(call.responded_at)}
-              />
-              <Field
-                label="დასრულება"
-                value={formatDateTime(call.completed_at)}
-              />
+              <Field label="რეაგირება" value={formatDateTime(call.responded_at)} />
+              <Field label="დასრულება" value={formatDateTime(call.completed_at)} />
               <div className="col-span-2">
                 <Field label="აღწერა" value={call.description} />
               </div>
@@ -262,9 +261,7 @@ function CallDetailPage() {
                       <Clock className="size-3.5 text-muted-foreground" />
                     </div>
                     <div>
-                      <div className="text-sm font-medium">
-                        {statusLabel[h.status]}
-                      </div>
+                      <div className="text-sm font-medium">{statusLabel[h.status]}</div>
                       <div className="text-xs text-muted-foreground">
                         {formatDateTime(h.changed_at)}
                       </div>
@@ -272,9 +269,7 @@ function CallDetailPage() {
                   </li>
                 ))}
                 {history.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    ისტორია ცარიელია
-                  </p>
+                  <p className="text-sm text-muted-foreground">ისტორია ცარიელია</p>
                 ) : null}
               </ol>
             </CardContent>
@@ -295,9 +290,7 @@ function CallDetailPage() {
                 </div>
               ))}
               {notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  კომენტარები არ არის
-                </p>
+                <p className="text-sm text-muted-foreground">კომენტარები არ არის</p>
               ) : null}
               {canEdit ? (
                 <div className="flex gap-2">
@@ -368,9 +361,7 @@ function CallDetailPage() {
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  {closed
-                    ? "გამოძახება დახურულია."
-                    : "სტატუსის შეცვლის უფლება არ გაქვთ."}
+                  {closed ? "გამოძახება დახურულია." : "სტატუსის შეცვლის უფლება არ გაქვთ."}
                 </p>
               )}
             </CardContent>
@@ -379,17 +370,12 @@ function CallDetailPage() {
           {isDispatcher ? (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">
-                  ტექნიკოსზე მიბმა და გრაფიკი
-                </CardTitle>
+                <CardTitle className="text-sm">ტექნიკოსზე მიბმა და გრაფიკი</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid gap-1.5">
                   <Label className="text-xs">ტექნიკოსი</Label>
-                  <Select
-                    value={assignee || call.assigned_to || ""}
-                    onValueChange={setAssignee}
-                  >
+                  <Select value={assignee || call.assigned_to || ""} onValueChange={setAssignee}>
                     <SelectTrigger>
                       <SelectValue placeholder="აირჩიეთ ტექნიკოსი" />
                     </SelectTrigger>
@@ -404,10 +390,7 @@ function CallDetailPage() {
                 </div>
                 <div className="grid gap-1.5">
                   <Label className="text-xs">ჯგუფი</Label>
-                  <Select
-                    value={team || callExtra.assigned_team_id || ""}
-                    onValueChange={setTeam}
-                  >
+                  <Select value={team || callExtra.assigned_team_id || ""} onValueChange={setTeam}>
                     <SelectTrigger>
                       <SelectValue placeholder="აირჩიეთ ჯგუფი" />
                     </SelectTrigger>
@@ -443,6 +426,9 @@ function CallDetailPage() {
           ) : null}
         </div>
       </div>
+      {isDispatcher ? (
+        <EditCallDialog call={call} open={editOpen} onOpenChange={setEditOpen} />
+      ) : null}
     </AppShell>
   );
 }
