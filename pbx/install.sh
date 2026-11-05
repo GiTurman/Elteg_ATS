@@ -86,6 +86,9 @@ if [ -z "$dom" ] || [ "$dom" = "pbx.example.ge" ]; then
   set_env PBX_DOMAIN "$dom"
 fi
 set_env PUBLIC_IP "$IP"
+# Geonet (MOR Softswitch) გამავალ ნომერს იღებს მხოლოდ 995XXXXXXXXX ფორმატით
+[ "$(get_env OUTBOUND_FORMAT)" = "national" ] && set_env OUTBOUND_FORMAT intl
+[ -n "$(get_env OUTBOUND_FORMAT)" ] || set_env OUTBOUND_FORMAT intl
 [ -n "$(get_env REC_SECRET)" ] || set_env REC_SECRET "$(openssl rand -hex 16)"
 ok "დომენი: $dom"
 

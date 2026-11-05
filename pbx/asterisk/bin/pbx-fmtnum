@@ -14,6 +14,7 @@ if [ ${#n} -eq 9 ] && [[ "$n" =~ ^[0-9]+$ ]]; then
   case "${OUTBOUND_FORMAT:-national}" in
     national0) printf '0%s' "$n" ;;
     e164) printf '+995%s' "$n" ;;
+    intl) printf '995%s' "$n" ;;
     intl00) printf '00995%s' "$n" ;;
     *) printf '%s' "$n" ;;
   esac
