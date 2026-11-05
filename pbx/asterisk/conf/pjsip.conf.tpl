@@ -23,6 +23,7 @@ bind = 0.0.0.0
 ; ოპერატორის ბრაუზერის ტელეფონი (WebRTC)
 [webrtc-op](!)
 type = endpoint
+identify_by = username
 transport = transport-ws
 context = from-internal
 disallow = all

@@ -136,7 +136,7 @@ export const telephonySettingsQuery = queryOptions({
   queryFn: async () => {
     const { data, error } = await supabase
       .from("telephony_settings")
-      .select("*")
+      .select("id, answer_sla_seconds, main_number, pbx_wss_url, updated_at")
       .eq("id", 1)
       .maybeSingle();
     if (error) throw error;

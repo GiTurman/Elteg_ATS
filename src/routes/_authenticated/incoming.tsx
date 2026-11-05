@@ -40,7 +40,7 @@ function IncomingPage() {
   // Realtime: ახალი ზარი ავტომატურად გამოჩნდეს
   useEffect(() => {
     const channel = supabase
-      .channel("incoming_calls_live")
+      .channel(`incoming_calls_live:${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "incoming_calls" },

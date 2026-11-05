@@ -1,7 +1,12 @@
-// SIP პაროლები შიდა ნომრებისთვის: HMAC-SHA256(sip_secret, "ext:<ნომერი>") — სერვერზე მხოლოდ.
+// SIP პაროლები: HMAC-SHA256(sip_secret, "ext:<ნომერი>:<profile_id>") — სერვერზე მხოლოდ.
+// profile_id-ის გამო ნომრის სხვა თანამშრომელზე გადაცემისას ძველი პაროლი აღარ მუშაობს.
 // ავტორი: Giorgi Turmanidze "GT"
 
-export async function sipPasswordFor(secret: string, extension: string): Promise<string> {
+export async function sipPasswordFor(
+  secret: string,
+  extension: string,
+  profileId: string,
+): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -10,7 +15,7 @@ export async function sipPasswordFor(secret: string, extension: string): Promise
     false,
     ["sign"],
   );
-  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`ext:${extension}`));
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(`ext:${extension}:${profileId}`));
   return Array.from(new Uint8Array(sig))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("")

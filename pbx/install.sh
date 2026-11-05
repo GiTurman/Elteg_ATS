@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GT-ATS — სადგურის დაყენება ერთი ბრძანებით (Ubuntu 24.04, root).
+# GT-ATS — სადგურის დაყენება ერთი ბრძანებით (Ubuntu 24.04/26.04, root).
 # ავტორი: Giorgi Turmanidze "GT"
 #
 #   curl -fsSL https://raw.githubusercontent.com/GiTurman/Elteg_ATS/main/pbx/install.sh | bash
@@ -90,6 +90,9 @@ set_env PUBLIC_IP "$IP"
 [ "$(get_env OUTBOUND_FORMAT)" = "national" ] && set_env OUTBOUND_FORMAT intl
 [ -n "$(get_env OUTBOUND_FORMAT)" ] || set_env OUTBOUND_FORMAT intl
 [ -n "$(get_env REC_SECRET)" ] || set_env REC_SECRET "$(openssl rand -hex 16)"
+# ჩანაწერები 90 დღე (180 დღე დისკს ავსებდა)
+[ "$(get_env REC_RETENTION_DAYS)" = "180" ] && set_env REC_RETENTION_DAYS 90
+[ -n "$(get_env REC_RETENTION_DAYS)" ] || set_env REC_RETENTION_DAYS 90
 ok "დომენი: $dom"
 
 say "ფაიერვოლი"

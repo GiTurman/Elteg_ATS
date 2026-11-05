@@ -1,6 +1,12 @@
 # GT-ATS — სატელეფონო სადგური (Asterisk + Caddy TLS)
 # ავტორი: Giorgi Turmanidze "GT"
 # გაშვება: cp .env.example .env && nano .env && docker compose up -d --build
+x-log: &log
+  driver: local
+  options:
+    max-size: "20m"
+    max-file: "5"
+
 services:
   asterisk:
     build: ./asterisk
@@ -8,8 +14,16 @@ services:
     restart: unless-stopped
     network_mode: host # SIP/RTP-ს NAT-ის გარეშე
     env_file: .env
+    init: true
+    logging: *log
+    healthcheck:
+      test: ["CMD", "asterisk", "-rx", "core show uptime"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
     volumes:
       - recordings:/var/spool/asterisk/monitor
+      - pbx-state:/var/lib/gt-ats # ბოლო წარმატებული კონფიგურაცია (აპის მიუწვდომლობისას)
       - ../public/sounds:/var/lib/asterisk/sounds/custom:ro # იგივე ფაილები, რასაც აპი უკრავს
       - asterisk-keys:/var/lib/asterisk/keys
 
@@ -18,7 +32,11 @@ services:
     container_name: gt-ats-caddy
     restart: unless-stopped
     network_mode: host # 80/443 — ავტომატური HTTPS (Let's Encrypt)
-    env_file: .env
+    logging: *log
+    # Caddy-ს მხოლოდ ეს ორი სჭირდება (SIP პაროლი/ტოკენი მას არ გადაეცემა)
+    environment:
+      PBX_DOMAIN: ${PBX_DOMAIN}
+      REC_SECRET: ${REC_SECRET}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - recordings:/recordings:ro
@@ -27,6 +45,7 @@ services:
 
 volumes:
   recordings:
+  pbx-state:
   asterisk-keys:
   caddy-data:
   caddy-config:

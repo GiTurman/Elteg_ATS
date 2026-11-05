@@ -107,7 +107,7 @@ function ShiftsPage() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("operator_shifts_live")
+      .channel(`operator_shifts_live:${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "operator_shifts" }, () => {
         queryClient.invalidateQueries({ queryKey: ["operator_shifts"] });
       })
@@ -145,7 +145,9 @@ function ShiftsPage() {
         .lt("starts_at", fromIso);
       if (error) throw error;
       if (!prev?.length) throw new Error("წინა კვირაში ცვლები არ არის");
-      const existing = new Set(shifts.map((s) => `${s.profile_id}|${s.duty_role}|${s.starts_at}`));
+      const existing = new Set(
+        shifts.map((s) => `${s.profile_id}|${s.duty_role}|${Date.parse(s.starts_at)}`),
+      );
       const week = 7 * 24 * 3600 * 1000;
       const rows = prev
         .map((s) => ({
@@ -156,7 +158,7 @@ function ShiftsPage() {
           notes: s.notes,
           created_by: userId ?? null,
         }))
-        .filter((r) => !existing.has(`${r.profile_id}|${r.duty_role}|${r.starts_at}`));
+        .filter((r) => !existing.has(`${r.profile_id}|${r.duty_role}|${Date.parse(r.starts_at)}`));
       if (!rows.length) throw new Error("ეს ცვლები უკვე დამატებულია");
       const { error: insErr } = await supabase.from("operator_shifts").insert(rows);
       if (insErr) throw insErr;

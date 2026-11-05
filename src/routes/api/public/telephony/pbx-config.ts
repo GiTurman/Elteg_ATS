@@ -16,9 +16,8 @@ export const Route = createFileRoute("/api/public/telephony/pbx-config")({
     handlers: {
       GET: async ({ request }) => {
         const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
-        const url = new URL(request.url);
-        const provided =
-          request.headers.get("x-webhook-token") ?? url.searchParams.get("token") ?? "";
+        // ტოკენი მხოლოდ ჰედერით (URL-ში ლოგებში ჩაიწერებოდა)
+        const provided = request.headers.get("x-webhook-token") ?? "";
         const { data: settings } = await db
           .from("telephony_settings")
           .select("*")
@@ -40,7 +39,7 @@ export const Route = createFileRoute("/api/public/telephony/pbx-config")({
         const secret = await loadSipSecret();
         const users = [];
         for (const p of profiles ?? []) {
-          if (!p.extension || !/^[0-9]{2,6}$/.test(p.extension)) continue;
+          if (!p.extension || !/^[1-9][0-9]{1,3}$/.test(p.extension)) continue;
           const userRoles = (roles ?? []).filter((r) => r.user_id === p.id).map((r) => r.role);
           if (!p.is_active || userRoles.length === 0) continue;
           users.push({
@@ -51,7 +50,7 @@ export const Route = createFileRoute("/api/public/telephony/pbx-config")({
               : userRoles.includes("dispatcher")
                 ? "dispatcher"
                 : "technician",
-            password: await sipPasswordFor(secret, p.extension),
+            password: await sipPasswordFor(secret, p.extension, p.id),
           });
         }
         users.sort((a, b) => a.extension.localeCompare(b.extension));

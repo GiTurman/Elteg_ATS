@@ -158,7 +158,7 @@ function CallHistoryPage() {
   // Realtime: ახალი/შეცვლილი ზარი მაშინვე ჩანს
   useEffect(() => {
     const channel = supabase
-      .channel("call_logs_history_live")
+      .channel(`call_logs_history_live:${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "call_logs" }, () => {
         queryClient.invalidateQueries({ queryKey: ["call_logs"] });
       })

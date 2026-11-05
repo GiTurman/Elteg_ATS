@@ -25,6 +25,12 @@ async function assertManager(userId: string) {
     .maybeSingle();
   if (error) throw new Error("როლის შემოწმება ვერ მოხერხდა");
   if (!data) throw new Error("ეს მოქმედება მხოლოდ მენეჯერს შეუძლია");
+  const { data: me } = await supabaseAdmin
+    .from("profiles")
+    .select("is_active")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!me?.is_active) throw new Error("ანგარიში გათიშულია");
   return supabaseAdmin;
 }
 
@@ -35,8 +41,7 @@ const createSchema = z.object({
   extension: z
     .string()
     .trim()
-    .max(10)
-    .regex(/^[0-9*#]*$/, "შიდა ნომერი — მხოლოდ ციფრები")
+    .regex(/^(|[1-9][0-9]{1,3})$/, "შიდა ნომერი — 2–4 ციფრი (არა 0-ით)")
     .optional()
     .default(""),
   phone: z.string().trim().max(32).optional().default(""),

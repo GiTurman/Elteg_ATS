@@ -15,13 +15,10 @@ export const Route = createFileRoute("/api/public/telephony/pbx-hello")({
     handlers: {
       POST: async ({ request }) => {
         const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
-        const provided =
-          request.headers.get("x-webhook-token") ??
-          new URL(request.url).searchParams.get("token") ??
-          "";
+        const provided = request.headers.get("x-webhook-token") ?? "";
         const { data: settings } = await db
           .from("telephony_settings")
-          .select("webhook_token")
+          .select("webhook_token, pbx_wss_url")
           .eq("id", 1)
           .maybeSingle();
         if (!settings?.webhook_token || !provided || !safeEqual(provided, settings.webhook_token)) {
@@ -36,6 +33,20 @@ export const Route = createFileRoute("/api/public/telephony/pbx-hello")({
         const wss = typeof body.wss_url === "string" ? body.wss_url.trim() : "";
         if (!/^wss:\/\/[a-z0-9.-]+(:\d+)?\/ws$/i.test(wss)) {
           return json({ ok: false, error: "invalid_wss_url" }, 400);
+        }
+        // უკვე მითითებული მისამართის სხვა ჰოსტზე შეცვლა მხოლოდ მენეჯერს შეუძლია (აპიდან) —
+        // ტოკენის გაჟონვის შემთხვევაშიც ოპერატორების ტელეფონები სხვა სერვერზე ვერ გადავა.
+        const current = (settings as { pbx_wss_url?: string | null }).pbx_wss_url?.trim();
+        if (current) {
+          if (current === wss) return json({ ok: true, pbx_wss_url: wss });
+          let sameHost = false;
+          try {
+            sameHost = new URL(current).hostname === new URL(wss).hostname;
+          } catch {
+            sameHost = false;
+          }
+          if (!sameHost)
+            return json({ ok: false, error: "wss_url_locked", pbx_wss_url: current }, 409);
         }
         const { error } = await db
           .from("telephony_settings")

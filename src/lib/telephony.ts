@@ -28,7 +28,10 @@ const optStr = (max: number) =>
 
 export const telephonyEventSchema = z.object({
   event: z.enum(TELEPHONY_EVENTS),
-  call_id: z.union([z.string(), z.number()]).transform((v) => String(v).trim()).pipe(z.string().min(1).max(200)),
+  call_id: z
+    .union([z.string(), z.number()])
+    .transform((v) => String(v).trim())
+    .pipe(z.string().min(1).max(200)),
   direction: z.enum(["inbound", "outbound", "internal"]).optional().nullable().catch(undefined),
   from: optStr(64),
   to: optStr(64),
@@ -40,7 +43,11 @@ export const telephonyEventSchema = z.object({
     .nullable()
     .transform((v) => (v && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : undefined)),
   duration: z.coerce.number().int().min(0).max(86400).optional().nullable().catch(undefined),
-  status: z.enum(["answered", "missed", "abandoned", "voicemail"]).optional().nullable().catch(undefined),
+  status: z
+    .enum(["answered", "missed", "abandoned", "voicemail"])
+    .optional()
+    .nullable()
+    .catch(undefined),
   recording_url: optStr(2048),
   is_test: z.boolean().optional().nullable().catch(undefined),
 });
@@ -99,8 +106,7 @@ export function computeCallLogPatch(
 ): CallLogPatch {
   const ts = ev.timestamp ?? nowIso;
   const prevRaw = (prev?.raw ?? null) as Record<string, unknown> | null;
-  const isTest =
-    ev.is_test === true || prev?.status === "test" || prevRaw?.["is_test"] === true;
+  const isTest = ev.is_test === true || prev?.status === "test" || prevRaw?.["is_test"] === true;
 
   const direction = (ev.direction ??
     (prev?.direction as CallLogPatch["direction"]) ??
@@ -122,7 +128,8 @@ export function computeCallLogPatch(
       if (status !== "test") status = "answered";
       break;
     case "call_ended":
-      ended = ts;
+      // განმეორებითი call_ended დროის გარეშე ended_at-ს აღარ ცვლის (იდემპოტენტური)
+      ended = ev.timestamp ?? ended ?? nowIso;
       if (ev.status === "answered" && !answered) {
         answered = ev.duration != null ? shift(ts, -ev.duration) : ts;
       }

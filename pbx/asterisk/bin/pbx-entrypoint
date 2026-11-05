@@ -28,6 +28,9 @@ done
 sed "s/@@PUBLIC_IP@@/${PUBLIC_IP}/g" "$SRC/pjsip.conf.tpl" > "$CONF/pjsip.conf"
 
 # ოპერატორის SIP ხაზი
+case "${TRUNK_PASS:-}" in
+  *";"*|*"#"*) echo "⚠ GT-ATS: TRUNK_PASS შეიცავს ; ან # სიმბოლოს — Asterisk-ში ეს კომენტარია, პაროლი შეიცვლება" >&2 ;;
+esac
 if [ -n "${TRUNK_HOST:-}" ]; then
   dom=${TRUNK_DOMAIN:-$TRUNK_HOST}
   port=${TRUNK_PORT:-5060}
@@ -47,6 +50,9 @@ if [ -n "${TRUNK_HOST:-}" ]; then
     echo "type = endpoint"
     echo "transport = transport-udp"
     echo "context = from-trunk"
+    # მხოლოდ IP-ით! (username-ით ამოცნობა WSS-იდან პაროლის გარეშე ზარის საშუალებას იძლეოდა)
+    echo "identify_by = ip"
+    echo "allow_transfer = no"
     echo "disallow = all"
     echo "allow = alaw,ulaw"
     echo "aors = trunk"
@@ -76,7 +82,10 @@ if [ -n "${TRUNK_HOST:-}" ]; then
       echo "client_uri = sip:${TRUNK_USER}@${dom}"
       echo "contact_user = ${TRUNK_USER}"
       echo "retry_interval = 60"
-      echo "forbidden_retry_interval = 600"
+      echo "forbidden_retry_interval = 300"
+      echo "fatal_retry_interval = 60"
+      echo "max_retries = 1000000"
+      echo "auth_rejection_permanent = no"
       echo "expiration = 300"
       echo "line = yes"
       echo "endpoint = trunk"
@@ -87,7 +96,13 @@ else
 fi
 chmod 640 "$CONF/pjsip_trunk.conf"
 
-touch "$CONF/pjsip_endpoints.conf" "$CONF/queues_members.conf" "$CONF/extensions_globals.conf"
+touch "$CONF/pjsip_endpoints.conf" "$CONF/queues_members.conf"
+# საწყისი გლობალები .env-დან (თუ აპი გაშვებისას მიუწვდომელია, დროის ლიმიტები მაინც იყოს)
+{
+  echo "MAIN_NUMBER=$(printf '%s' "${MAIN_NUMBER:-}" | tr -cd '0-9+')"
+  echo "QUEUE_TIMEOUT=${QUEUE_TIMEOUT:-40}"
+  echo "OVERFLOW_TIMEOUT=${OVERFLOW_TIMEOUT:-30}"
+} > "$CONF/extensions_globals.conf"
 /usr/local/bin/pbx-sync || true
 
 # აპს ვაცნობებთ სადგურის WebRTC მისამართს (ფონურად, რომ გაშვება არ შეფერხდეს)

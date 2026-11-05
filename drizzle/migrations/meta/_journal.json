@@ -43,6 +43,13 @@
       "when": 1793700600000,
       "tag": "0005_pbx_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793800000000,
+      "tag": "0006_security_audit",
+      "breakpoints": true
     }
   ]
 }

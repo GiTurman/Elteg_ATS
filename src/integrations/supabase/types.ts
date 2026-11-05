@@ -707,18 +707,24 @@ export type Database = {
         Row: {
           answer_sla_seconds: number
           id: number
+          main_number: string | null
+          pbx_wss_url: string | null
           updated_at: string
           webhook_token: string
         }
         Insert: {
           answer_sla_seconds?: number
           id?: number
+          main_number?: string | null
+          pbx_wss_url?: string | null
           updated_at?: string
           webhook_token?: string
         }
         Update: {
           answer_sla_seconds?: number
           id?: number
+          main_number?: string | null
+          pbx_wss_url?: string | null
           updated_at?: string
           webhook_token?: string
         }
@@ -764,6 +770,7 @@ export type Database = {
         }[]
       }
       normalize_ge_phone: { Args: { _phone: string }; Returns: string }
+      get_telephony_token: { Args: never; Returns: string }
       regenerate_telephony_token: { Args: never; Returns: string }
       set_operator_contact: {
         Args: { _extension: string; _phone: string; _profile_id: string }

@@ -1,18 +1,21 @@
 #!/bin/bash
 # აპის webhook-ზე მოვლენის გაგზავნა. ავტორი: Giorgi Turmanidze "GT"
-# გამოყენება: pbx-notify <event> <call_id> <direction> <from> <to> <extension> <status>
+# გამოყენება: pbx-notify <event> <call_id> <direction> <from> <to> <extension> <status> [ჩანაწერის სახელი]
 # ("-" = ცარიელი). არგუმენტები დიალპლანში უკვე გაფილტრულია (ციფრები/+).
 set -u
 [ -f /etc/pbx.env ] && . /etc/pbx.env
 ev=${1:-}; id=${2:-}; dir=${3:--}; from=${4:--}; to=${5:--}; ext=${6:--}; st=${7:--}
+recf=$(printf '%s' "${8:-$id}" | tr -cd '0-9a-zA-Z.-')
 [ -z "$ev" ] || [ -z "$id" ] && exit 0
 n() { [ "$1" = "-" ] && echo "" || echo "$1"; }
 rec=""
 if [ "$ev" = "recording_ready" ]; then
-  f="/var/spool/asterisk/monitor/${id}.wav"
-  for _ in 1 2 3 4 5 6 7 8 9 10; do [ -s "$f" ] && break; sleep 1; done
-  [ -s "$f" ] || exit 0
-  rec="https://${PBX_DOMAIN}/rec/${REC_SECRET}/${id}.wav"
+  # MixMonitor-ი ამ ბრძანებას ფაილის დახურვის შემდეგ უშვებს; 2 წმ — რომ call_ended პირველი მივიდეს
+  sleep 2
+  f="/var/spool/asterisk/monitor/${recf}.wav"
+  # ცარიელი/მხოლოდ სათაურიანი ფაილი (უპასუხო ზარი) — არ ვაგზავნით
+  [ -f "$f" ] && [ "$(stat -c %s "$f")" -gt 4096 ] || exit 0
+  rec="https://${PBX_DOMAIN}/rec/${REC_SECRET}/${recf}.wav"
 fi
 body=$(jq -nc \
   --arg event "$ev" --arg call_id "$id" --arg direction "$(n "$dir")" \

@@ -6,16 +6,76 @@ set -uo pipefail
 CONF=/etc/asterisk
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
+STATE=/var/lib/gt-ats
+CACHE=$STATE/cfg.json
+EXT_RE='^[1-9][0-9]{1,3}$'
+PASS_RE='^[A-Za-z0-9]{16,64}$'
+mkdir -p "$STATE"
+running() { asterisk -rx 'core show uptime' >/dev/null 2>&1; }
+
+# ── ტექნიკური მომსახურება (ყოველ გაშვებაზე) ──────────────────────────
+maintenance() {
+  local MON=/var/spool/asterisk/monitor
+  # ძველი ჩანაწერები
+  find "$MON" -name '*.wav' -mtime +"${REC_RETENTION_DAYS:-90}" -delete 2>/dev/null || true
+  # დისკი 85%-ზე მეტია → უძველესი ჩანაწერების წაშლა 80%-მდე
+  local pct
+  pct=$(df --output=pcent "$MON" 2>/dev/null | tail -1 | tr -cd '0-9')
+  if [ -n "$pct" ] && [ "$pct" -gt 85 ]; then
+    echo "$(date '+%F %T') ⚠ დისკი ${pct}% — უძველესი ჩანაწერები იშლება"
+    find "$MON" -name '*.wav' -printf '%T@ %p\n' | sort -n | while read -r _ f; do
+      rm -f "$f"
+      pct=$(df --output=pcent "$MON" | tail -1 | tr -cd '0-9')
+      [ "$pct" -le 80 ] && break
+    done
+  fi
+  running || return 0
+  # რეგისტრაციის მცველი: Geonet-ზე რეგისტრაცია დაიკარგა → თავიდან
+  if grep -q '^\[trunk-reg\]' /etc/asterisk/pjsip_trunk.conf 2>/dev/null \
+     && ! asterisk -rx 'pjsip show registrations' 2>/dev/null | grep -q 'Registered'; then
+    echo "$(date '+%F %T') ⚠ Geonet-ზე რეგისტრაცია არ არის — თავიდან ცდა"
+    asterisk -rx 'pjsip send register trunk-reg' >/dev/null 2>&1 || true
+  fi
+  # ლოგების როტაცია დღეში ერთხელ, 14 დღეზე ძველის წაშლა
+  local today; today=$(date +%F)
+  if [ "$(cat "$STATE/rotated" 2>/dev/null)" != "$today" ]; then
+    asterisk -rx 'logger rotate' >/dev/null 2>&1 || true
+    find /var/log/asterisk -type f -name '*.[0-9]*' -mtime +14 -delete 2>/dev/null || true
+    for f in /var/log/asterisk/pbx-notify.log /var/log/asterisk/cdr-csv/Master.csv; do
+      [ -f "$f" ] && [ "$(stat -c %s "$f")" -gt 52428800 ] && : > "$f"
+    done
+    echo "$today" > "$STATE/rotated"
+  fi
+}
+maintenance
+
+# ── კონფიგურაცია აპიდან (მიუწვდომლობისას — ბოლო წარმატებული ასლი) ─────
 if [ -n "${PBX_CONFIG_FILE:-}" ]; then
   cp "$PBX_CONFIG_FILE" "$tmp/cfg.json"   # ტესტისთვის
-else
-  curl -fsS --max-time 10 -H "X-Webhook-Token: ${WEBHOOK_TOKEN}" \
-    "${APP_URL%/}/api/public/telephony/pbx-config" -o "$tmp/cfg.json" 2>/dev/null || exit 0
+elif ! curl -fsS --max-time 10 -H "X-Webhook-Token: ${WEBHOOK_TOKEN}" \
+       "${APP_URL%/}/api/public/telephony/pbx-config" -o "$tmp/cfg.json" 2>/dev/null \
+     || ! jq -e '.ok == true' "$tmp/cfg.json" >/dev/null 2>&1; then
+  # აპი მიუწვდომელია: თუ ოპერატორები უკვე ჩატვირთულია — არაფერს ვცვლით, თუ არა — ქეშიდან
+  [ -s "$CONF/pjsip_endpoints.conf" ] && exit 0
+  [ -s "$CACHE" ] || exit 0
+  cp "$CACHE" "$tmp/cfg.json"
 fi
-jq -e '.ok == true' "$tmp/cfg.json" >/dev/null 2>&1 || exit 0
+jq -e '.ok == true and (.users | type == "array")' "$tmp/cfg.json" >/dev/null 2>&1 || exit 0
+
+# მხოლოდ სწორი შიდა ნომრები და ძლიერი პაროლები (ცარიელი/„null“ პაროლი არასოდეს)
+jq --arg ext "$EXT_RE" --arg pw "$PASS_RE" '.users |= map(
+    select((.extension | type) == "string" and (.extension | test($ext)))
+  | select((.password | type) == "string" and (.password | test($pw))))' \
+  "$tmp/cfg.json" > "$tmp/clean.json" && mv "$tmp/clean.json" "$tmp/cfg.json"
+
+# აპის შეცდომით ცარიელი სია უკვე არსებულ ოპერატორებს არ წაშლის
+if [ "$(jq '.users | length' "$tmp/cfg.json")" -eq 0 ] && grep -q 'webrtc-op' "$CONF/pjsip_endpoints.conf" 2>/dev/null; then
+  echo "$(date '+%F %T') ⚠ sync: აპმა ცარიელი სია დააბრუნა — უცვლელად რჩება"
+  exit 0
+fi
+cp "$tmp/cfg.json" "$CACHE.tmp" && mv "$CACHE.tmp" "$CACHE" && chmod 600 "$CACHE"
 
 jq -r '.users[]
-  | select(.extension | test("^[0-9]{2,6}$"))
   | (.name | gsub("[\",;\\\\\\r\\n]"; " ")) as $name
   | "[\(.extension)](webrtc-op)\nauth = \(.extension)\naors = \(.extension)\ncallerid = \"\($name)\" <\(.extension)>\n\n[\(.extension)]\ntype = auth\nauth_type = userpass\nusername = \(.extension)\npassword = \(.password)\n\n[\(.extension)]\ntype = aor\nmax_contacts = 3\nremove_existing = yes\nremove_unavailable = yes\nqualify_frequency = 25\n"' \
   "$tmp/cfg.json" > "$tmp/pjsip_endpoints.conf"
@@ -23,7 +83,7 @@ jq -r '.users[]
 # ოპერატორები (penalty 0) რეკავს პირველ რიგში; მენეჯერი/ხელმძღვანელი (penalty 1) — მხოლოდ მაშინ,
 # როცა ხაზზე არც ერთი ოპერატორი არ არის თავისუფალი (მცირე გუნდისთვის ავტომატური სარეზერვო).
 jq -r '.users[]
-  | select((.role == "dispatcher" or .role == "manager") and (.extension | test("^[0-9]{2,6}$")))
+  | select(.role == "dispatcher" or .role == "manager")
   | (.name | gsub("[\",;\\\\\\r\\n]"; " ")) as $name
   | (if .role == "dispatcher" then 0 else 1 end) as $pen
   | "member => PJSIP/\(.extension),\($pen),\($name),PJSIP/\(.extension)"' \
@@ -37,7 +97,6 @@ main="${MAIN_NUMBER:-}"
   echo "OVERFLOW_TIMEOUT=${OVERFLOW_TIMEOUT:-30}"
 } > "$tmp/extensions_globals.conf"
 
-running() { asterisk -rx 'core show uptime' >/dev/null 2>&1; }
 changed=()
 for f in pjsip_endpoints.conf queues_members.conf extensions_globals.conf; do
   if ! cmp -s "$tmp/$f" "$CONF/$f"; then
@@ -55,7 +114,4 @@ if running && [ ${#changed[@]} -gt 0 ]; then
   done
   echo "$(date '+%F %T') sync: განახლდა ${changed[*]} ($(jq '.users | length' "$tmp/cfg.json") მომხმარებელი)"
 fi
-
-# ძველი ჩანაწერების წაშლა
-find /var/spool/asterisk/monitor -name '*.wav' -mtime +"${REC_RETENTION_DAYS:-180}" -delete 2>/dev/null || true
 exit 0

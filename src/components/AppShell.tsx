@@ -41,7 +41,7 @@ const NAV = [
   { to: "/tariffs", label: "ტარიფები", icon: Tags },
   { to: "/teams", label: "პირები/ჯგუფები", icon: UsersRound },
   { to: "/reports", label: "რეპორტები", icon: BarChart3 },
-  { to: "/telephony", label: "ტელეფონია", icon: Headset },
+  { to: "/telephony", label: "ტელეფონია", icon: Headset, managerOnly: true },
   { to: "/users", label: "მომხმარებლები", icon: Users, managerOnly: true },
 ] as const;
 

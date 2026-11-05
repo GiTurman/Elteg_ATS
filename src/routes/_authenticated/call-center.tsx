@@ -111,7 +111,7 @@ function CallCenterKpiPage() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("call_logs_kpi_live")
+      .channel(`call_logs_kpi_live:${crypto.randomUUID()}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "call_logs" }, () => {
         queryClient.invalidateQueries({ queryKey: ["call_logs"] });
       })

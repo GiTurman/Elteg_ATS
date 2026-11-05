@@ -55,11 +55,27 @@ const settingsQuery = {
   queryFn: async () => {
     const { data, error } = await supabase
       .from("telephony_settings")
-      .select("*")
+      .select("id, answer_sla_seconds, main_number, pbx_wss_url, updated_at")
       .eq("id", 1)
       .maybeSingle();
     if (error) throw error;
     return data;
+  },
+};
+
+// ტოკენი მხოლოდ მენეჯერს (RPC, ცხრილიდან პირდაპირ აღარ იკითხება)
+const tokenQuery = {
+  queryKey: ["telephony_settings", "token"],
+  queryFn: async () => {
+    const { data, error } = await supabase.rpc("get_telephony_token");
+    if (!error) return data ?? "";
+    // ბაზის 0006 განახლებამდე ფუნქცია ჯერ არ არსებობს — ძველი გზა
+    const { data: row } = await supabase
+      .from("telephony_settings")
+      .select("webhook_token")
+      .eq("id", 1)
+      .maybeSingle();
+    return row?.webhook_token ?? "";
   },
 };
 
@@ -149,8 +165,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function TelephonyPage() {
   const queryClient = useQueryClient();
-  const { isDispatcher, isTechnician, loading } = useCurrentUser();
-  const { data: settings } = useQuery({ ...settingsQuery, enabled: isDispatcher });
+  const { isManager, loading } = useCurrentUser();
+  const { data: settings } = useQuery({ ...settingsQuery, enabled: isManager });
+  const { data: tokenValue = "" } = useQuery({ ...tokenQuery, enabled: isManager });
   const { data: clients = [] } = useQuery(clientsQuery);
 
   const [origin, setOrigin] = useState("");
@@ -200,17 +217,17 @@ function TelephonyPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  if (!loading && (isTechnician || !isDispatcher)) {
+  if (!loading && !isManager) {
     return (
       <AppShell title="ტელეფონია">
         <p className="py-8 text-center text-sm text-muted-foreground">
-          ეს გვერდი ხელმისაწვდომია მხოლოდ დისპეჩერისა და მენეჯერისთვის.
+          ეს გვერდი ხელმისაწვდომია მხოლოდ მენეჯერისთვის.
         </p>
       </AppShell>
     );
   }
 
-  const token = settings?.webhook_token ?? "";
+  const token = tokenValue;
   const masked = token ? `${token.slice(0, 4)}${"•".repeat(28)}${token.slice(-4)}` : "—";
 
   return (
@@ -268,8 +285,7 @@ function TelephonyPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                გადაეცით ჰედერში <span className="font-mono">X-Webhook-Token</span> ან პარამეტრად{" "}
-                <span className="font-mono">?token=</span>
+                გადაეცით ჰედერში <span className="font-mono">X-Webhook-Token</span>
               </p>
               <div>
                 <Button variant="outline" size="sm" onClick={() => setConfirmRotate(true)}>
@@ -682,8 +698,8 @@ function OperatorsCard() {
       const d = draft[id];
       if (!d) return;
       const ext = d.extension.trim();
-      if (ext && !/^[0-9*#]{1,10}$/.test(ext))
-        throw new Error("შიდა ნომერი უნდა შედგებოდეს მხოლოდ ციფრებისგან");
+      if (ext && !/^[1-9][0-9]{1,3}$/.test(ext))
+        throw new Error("შიდა ნომერი: 2–4 ციფრი (არა 0-ით)");
       const { error } = await supabase.rpc("set_operator_contact", {
         _profile_id: id,
         _extension: ext,

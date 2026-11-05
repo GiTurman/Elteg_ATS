@@ -28,7 +28,7 @@ export const getMySipAccount = createServerFn({ method: "POST" })
         .select("full_name, extension, is_active")
         .eq("id", context.userId)
         .maybeSingle(),
-      db.from("telephony_settings").select("*").eq("id", 1).maybeSingle(),
+      db.from("telephony_settings").select("pbx_wss_url").eq("id", 1).maybeSingle(),
     ]);
     const isStaff = (roles ?? []).some((r) => r.role === "dispatcher" || r.role === "manager");
     if (!isStaff || !profile?.is_active) return { ok: false, reason: "not_staff" };
@@ -42,7 +42,7 @@ export const getMySipAccount = createServerFn({ method: "POST" })
       wssUrl: wss,
       domain: new URL(wss).hostname,
       extension: profile.extension,
-      password: await sipPasswordFor(secret, profile.extension),
+      password: await sipPasswordFor(secret, profile.extension, context.userId),
       displayName: profile.full_name || profile.extension,
     };
   });

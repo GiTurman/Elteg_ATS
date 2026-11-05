@@ -266,13 +266,18 @@ export function EditCallDialog({
 
       // ზარების ისტორიაში/ცხელ ხაზზეც გამოჩნდეს კლიენტი (შეცდომა არ აჩერებს შენახვას)
       const matched = { matched_client_id: clientId, matched_object_id: form.objectId || null };
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         supabase.from("call_logs").update(matched).eq("service_call_id", call.id),
         dbx.from("incoming_calls").update(matched).eq("service_call_id", call.id),
       ]);
-      return { createdClient: !form.clientId && form.createClient };
+      const linkFailed = results.some(
+        (r) => r.status === "rejected" || (r.value as { error?: unknown }).error,
+      );
+      return { createdClient: !form.clientId && form.createClient, linkFailed };
     },
-    onSuccess: ({ createdClient }) => {
+    onSuccess: ({ createdClient, linkFailed }) => {
+      if (linkFailed)
+        toast.warning("გამოძახება შენახულია, მაგრამ ზარის ისტორიაში კლიენტი ვერ მიება");
       for (const key of [
         "service_call",
         "service_calls",

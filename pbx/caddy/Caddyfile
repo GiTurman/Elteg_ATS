@@ -5,7 +5,6 @@
 	}
 	handle_path /rec/{$REC_SECRET}/* {
 		root * /recordings
-		header Access-Control-Allow-Origin *
 		header Cache-Control "private, max-age=3600"
 		file_server
 	}
