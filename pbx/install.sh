@@ -43,8 +43,15 @@ apt-get update -qq
 apt-get install -y -qq git curl ufw openssl ca-certificates >/dev/null
 if ! command -v docker >/dev/null 2>&1; then
   say "Docker-ის დაყენება"
-  curl -fsSL https://get.docker.com | sh >/dev/null
+  if ! curl -fsSL https://get.docker.com | sh >/dev/null 2>&1; then
+    # ახალი Ubuntu ვერსია (მაგ. 26.04), რომელსაც get.docker.com ჯერ არ იცნობს — Ubuntu-ს საკუთარი პაკეტები
+    apt-get install -y -qq docker.io >/dev/null
+    apt-get install -y -qq docker-compose-v2 >/dev/null 2>&1 \
+      || apt-get install -y -qq docker-compose-plugin >/dev/null 2>&1 || true
+    systemctl enable --now docker >/dev/null 2>&1 || true
+  fi
 fi
+docker compose version >/dev/null 2>&1 || die "docker compose ვერ დაყენდა"
 ok "Docker: $(docker --version | cut -d, -f1)"
 
 say "კოდი: $DIR"
