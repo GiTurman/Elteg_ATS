@@ -33,6 +33,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useNotifyStatus } from "@/hooks/useNotifyStatus";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { clientsQuery, dbx, teamsQuery } from "@/lib/entities";
 import {
@@ -106,26 +107,20 @@ function CallsPage() {
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<CallStatus | "all">("all");
-  const [priorityFilter, setPriorityFilter] = useState<CallPriority | "all">(
-    "all",
-  );
+  const [priorityFilter, setPriorityFilter] = useState<CallPriority | "all">("all");
   const [typeFilter, setTypeFilter] = useState<ServiceType | "all">("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<NewCall>(emptyCall);
 
-  const nameOf = (id: string | null) =>
-    staff.find((s) => s.id === id)?.full_name ?? "—";
+  const nameOf = (id: string | null) => staff.find((s) => s.id === id)?.full_name ?? "—";
 
-  const visible = isTechnician
-    ? calls.filter((c) => c.assigned_to === userId)
-    : calls;
+  const visible = isTechnician ? calls.filter((c) => c.assigned_to === userId) : calls;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return visible.filter((c) => {
       if (statusFilter !== "all" && c.status !== statusFilter) return false;
-      if (priorityFilter !== "all" && c.priority !== priorityFilter)
-        return false;
+      if (priorityFilter !== "all" && c.priority !== priorityFilter) return false;
       if (typeFilter !== "all" && c.service_type !== typeFilter) return false;
       if (q) {
         const hay =
@@ -136,6 +131,7 @@ function CallsPage() {
     });
   }, [visible, search, statusFilter, priorityFilter, typeFilter]);
 
+  const notifyStatus = useNotifyStatus();
   const createCall = useMutation({
     mutationFn: async (values: NewCall) => {
       if (!values.site_name.trim() || !values.address.trim()) {
@@ -157,8 +153,13 @@ function CallsPage() {
         source: "manual",
         created_by: userId ?? null,
       };
-      const { error } = await dbx.from("service_calls").insert(payload);
+      const { data: created, error } = await dbx
+        .from("service_calls")
+        .insert(payload)
+        .select("id")
+        .single();
       if (error) throw error;
+      if (created?.id) notifyStatus(created.id as string);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service_calls"] });
@@ -250,10 +251,7 @@ function CallsPage() {
             ))}
           </SelectContent>
         </Select>
-        <Select
-          value={typeFilter}
-          onValueChange={(v) => setTypeFilter(v as ServiceType | "all")}
-        >
+        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ServiceType | "all")}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="ტიპი" />
           </SelectTrigger>
@@ -288,9 +286,7 @@ function CallsPage() {
                 key={c.id}
                 className={
                   "cursor-pointer " +
-                  (slaState(c) === "breached" && isOpen(c.status)
-                    ? "bg-destructive/5"
-                    : "")
+                  (slaState(c) === "breached" && isOpen(c.status) ? "bg-destructive/5" : "")
                 }
                 onClick={() =>
                   navigate({
@@ -301,12 +297,8 @@ function CallsPage() {
               >
                 <TableCell className="font-mono text-xs">{c.call_no}</TableCell>
                 <TableCell className="max-w-[220px]">
-                  <div className="truncate text-sm font-medium">
-                    {c.site_name}
-                  </div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {c.address}
-                  </div>
+                  <div className="truncate text-sm font-medium">{c.site_name}</div>
+                  <div className="truncate text-xs text-muted-foreground">{c.address}</div>
                 </TableCell>
                 <TableCell className="hidden text-xs md:table-cell">
                   {serviceTypeLabel[c.service_type]}
@@ -330,10 +322,7 @@ function CallsPage() {
             ))}
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell
-                  colSpan={8}
-                  className="py-8 text-center text-sm text-muted-foreground"
-                >
+                <TableCell colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
                   გამოძახებები არ მოიძებნა
                 </TableCell>
               </TableRow>
@@ -347,8 +336,7 @@ function CallsPage() {
           <DialogHeader>
             <DialogTitle>ახალი გამოძახება</DialogTitle>
             <DialogDescription>
-              შეავსეთ გამოძახების დეტალები. „ჩამოკიდება“ ავტომატურად ხდება
-              კრიტიკული.
+              შეავსეთ გამოძახების დეტალები. „ჩამოკიდება“ ავტომატურად ხდება კრიტიკული.
             </DialogDescription>
           </DialogHeader>
 
@@ -389,18 +377,14 @@ function CallsPage() {
               <Label>ობიექტის დასახელება *</Label>
               <Input
                 value={form.site_name}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, site_name: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, site_name: e.target.value }))}
               />
             </div>
             <div className="grid gap-1.5">
               <Label>მისამართი *</Label>
               <Input
                 value={form.address}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, address: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
               />
             </div>
 
@@ -409,18 +393,14 @@ function CallsPage() {
                 <Label>ლიფტის კოდი</Label>
                 <Input
                   value={form.elevator_code}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, elevator_code: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, elevator_code: e.target.value }))}
                 />
               </div>
               <div className="grid gap-1.5">
                 <Label>ქარხნული ნომერი</Label>
                 <Input
                   value={form.serial_number}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, serial_number: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, serial_number: e.target.value }))}
                 />
               </div>
             </div>
@@ -430,9 +410,7 @@ function CallsPage() {
                 <Label>მომსახურების ტიპი</Label>
                 <Select
                   value={form.service_type}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, service_type: v as ServiceType }))
-                  }
+                  onValueChange={(v) => setForm((f) => ({ ...f, service_type: v as ServiceType }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -451,9 +429,7 @@ function CallsPage() {
                 <Select
                   value={chamokideba ? "kritikuli" : form.priority}
                   disabled={chamokideba}
-                  onValueChange={(v) =>
-                    setForm((f) => ({ ...f, priority: v as CallPriority }))
-                  }
+                  onValueChange={(v) => setForm((f) => ({ ...f, priority: v as CallPriority }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -473,9 +449,7 @@ function CallsPage() {
               <Label>ჯგუფის მიბმა (არასავალდებულო)</Label>
               <Select
                 value={form.assigned_team_id}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, assigned_team_id: v }))
-                }
+                onValueChange={(v) => setForm((f) => ({ ...f, assigned_team_id: v }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="აირჩიეთ ჯგუფი" />
@@ -495,9 +469,7 @@ function CallsPage() {
               <Textarea
                 rows={3}
                 value={form.description}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, description: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
             </div>
 
@@ -506,18 +478,14 @@ function CallsPage() {
                 <Label>დამკვეთი</Label>
                 <Input
                   value={form.client_name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, client_name: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, client_name: e.target.value }))}
                 />
               </div>
               <div className="grid gap-1.5">
                 <Label>საკონტაქტო</Label>
                 <Input
                   value={form.client_phone}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, client_phone: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, client_phone: e.target.value }))}
                 />
               </div>
             </div>
@@ -527,10 +495,7 @@ function CallsPage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               გაუქმება
             </Button>
-            <Button
-              onClick={() => createCall.mutate(form)}
-              disabled={createCall.isPending}
-            >
+            <Button onClick={() => createCall.mutate(form)} disabled={createCall.isPending}>
               {createCall.isPending ? "ინახება…" : "რეგისტრაცია"}
             </Button>
           </DialogFooter>

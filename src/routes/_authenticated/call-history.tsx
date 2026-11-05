@@ -37,6 +37,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useSoftphone } from "@/components/softphone/SoftphoneProvider";
+import { useNotifyStatus } from "@/hooks/useNotifyStatus";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -264,6 +265,7 @@ function CallHistoryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const notifyStatus = useNotifyStatus();
   const createServiceCall = useMutation({
     mutationFn: async (l: CallLog) => {
       const obj = objectOf(l.matched_object_id);
@@ -292,6 +294,7 @@ function CallHistoryPage() {
         .select()
         .single();
       if (error) throw error;
+      notifyStatus(call.id);
       const { error: upErr } = await supabase
         .from("call_logs")
         .update({ service_call_id: call.id })

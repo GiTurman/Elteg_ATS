@@ -21,6 +21,7 @@ import { Route as AuthenticatedObjectsRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedScheduleRouteImport } from './routes/_authenticated/schedule'
 import { Route as AuthenticatedShiftsRouteImport } from './routes/_authenticated/shifts'
+import { Route as AuthenticatedSmsRouteImport } from './routes/_authenticated/sms'
 import { Route as AuthenticatedTariffsRouteImport } from './routes/_authenticated/tariffs'
 import { Route as AuthenticatedTeamsRouteImport } from './routes/_authenticated/teams'
 import { Route as AuthenticatedTelephonyRouteImport } from './routes/_authenticated/telephony'
@@ -92,6 +93,11 @@ const AuthenticatedShiftsRoute = AuthenticatedShiftsRouteImport.update({
   path: '/shifts',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSmsRoute = AuthenticatedSmsRouteImport.update({
+  id: '/sms',
+  path: '/sms',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTariffsRoute = AuthenticatedTariffsRouteImport.update({
   id: '/tariffs',
   path: '/tariffs',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AuthenticatedReportsRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/shifts': typeof AuthenticatedShiftsRoute
+  '/sms': typeof AuthenticatedSmsRoute
   '/tariffs': typeof AuthenticatedTariffsRoute
   '/teams': typeof AuthenticatedTeamsRoute
   '/telephony': typeof AuthenticatedTelephonyRoute
@@ -183,6 +190,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AuthenticatedReportsRoute
   '/schedule': typeof AuthenticatedScheduleRoute
   '/shifts': typeof AuthenticatedShiftsRoute
+  '/sms': typeof AuthenticatedSmsRoute
   '/tariffs': typeof AuthenticatedTariffsRoute
   '/teams': typeof AuthenticatedTeamsRoute
   '/telephony': typeof AuthenticatedTelephonyRoute
@@ -208,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/schedule': typeof AuthenticatedScheduleRoute
   '/_authenticated/shifts': typeof AuthenticatedShiftsRoute
+  '/_authenticated/sms': typeof AuthenticatedSmsRoute
   '/_authenticated/tariffs': typeof AuthenticatedTariffsRoute
   '/_authenticated/teams': typeof AuthenticatedTeamsRoute
   '/_authenticated/telephony': typeof AuthenticatedTelephonyRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/schedule'
     | '/shifts'
+    | '/sms'
     | '/tariffs'
     | '/teams'
     | '/telephony'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/schedule'
     | '/shifts'
+    | '/sms'
     | '/tariffs'
     | '/teams'
     | '/telephony'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports'
     | '/_authenticated/schedule'
     | '/_authenticated/shifts'
+    | '/_authenticated/sms'
     | '/_authenticated/tariffs'
     | '/_authenticated/teams'
     | '/_authenticated/telephony'
@@ -388,6 +400,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedShiftsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/sms': {
+      id: '/_authenticated/sms'
+      path: '/sms'
+      fullPath: '/sms'
+      preLoaderRoute: typeof AuthenticatedSmsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tariffs': {
       id: '/_authenticated/tariffs'
       path: '/tariffs'
@@ -471,6 +490,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedScheduleRoute: typeof AuthenticatedScheduleRoute
   AuthenticatedShiftsRoute: typeof AuthenticatedShiftsRoute
+  AuthenticatedSmsRoute: typeof AuthenticatedSmsRoute
   AuthenticatedTariffsRoute: typeof AuthenticatedTariffsRoute
   AuthenticatedTeamsRoute: typeof AuthenticatedTeamsRoute
   AuthenticatedTelephonyRoute: typeof AuthenticatedTelephonyRoute
@@ -489,6 +509,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedScheduleRoute: AuthenticatedScheduleRoute,
   AuthenticatedShiftsRoute: AuthenticatedShiftsRoute,
+  AuthenticatedSmsRoute: AuthenticatedSmsRoute,
   AuthenticatedTariffsRoute: AuthenticatedTariffsRoute,
   AuthenticatedTeamsRoute: AuthenticatedTeamsRoute,
   AuthenticatedTelephonyRoute: AuthenticatedTelephonyRoute,

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNotifyStatus } from "@/hooks/useNotifyStatus";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDateTime } from "@/lib/domain";
@@ -58,6 +59,7 @@ function IncomingPage() {
     clients.find((c) => c.id === id)?.name ?? null;
   const object = (id: string | null) => objects.find((o) => o.id === id) ?? null;
 
+  const notifyStatus = useNotifyStatus();
   const createFromCall = useMutation({
     mutationFn: async (ic: IncomingCall) => {
       const obj = object(ic.matched_object_id);
@@ -86,6 +88,7 @@ function IncomingPage() {
         .select()
         .single();
       if (error) throw error;
+      notifyStatus(call.id);
       const { error: upErr } = await dbx
         .from("incoming_calls")
         .update({ status: "linked", service_call_id: call.id })

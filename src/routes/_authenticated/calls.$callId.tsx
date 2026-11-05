@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useNotifyStatus } from "@/hooks/useNotifyStatus";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { clientsQuery, dbx, teamsQuery } from "@/lib/entities";
@@ -102,6 +103,7 @@ function CallDetailPage() {
     queryClient.invalidateQueries({ queryKey: ["call_history", callId] });
   };
 
+  const notifyStatus = useNotifyStatus();
   const setStatus = useMutation({
     mutationFn: async (status: CallStatus) => {
       const { error } = await supabase.from("service_calls").update({ status }).eq("id", callId);
@@ -109,6 +111,7 @@ function CallDetailPage() {
     },
     onSuccess: () => {
       refresh();
+      notifyStatus(callId);
       toast.success("სტატუსი განახლდა");
     },
     onError: (e: Error) => toast.error(e.message),

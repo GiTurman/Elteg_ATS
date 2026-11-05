@@ -175,6 +175,25 @@ export const Route = createFileRoute("/api/public/telephony/webhook")({
             }
           }
 
+          // 5c. შემომავალ ზარზე კლიენტს SMS: პაკეტი, რეაგირების დრო, მომსახურება
+          if (
+            !prev.started_at &&
+            patch.started_at &&
+            patch.direction === "inbound" &&
+            patch.status !== "test"
+          ) {
+            try {
+              const { sendInboundInfoSms } = await import("@/lib/sms.server");
+              await sendInboundInfoSms({
+                callLogId: row.id,
+                phone: patch.caller_number ?? row.caller_number,
+                clientId: matchedClient,
+              });
+            } catch (e) {
+              console.error("[telephony] inbound sms failed", e);
+            }
+          }
+
           // 6. Hotline popup for inbound calls / dismiss for test calls
           if (patch.status === "test") {
             await db

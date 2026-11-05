@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquare,
   PhoneCall,
   PhoneIncoming,
   Tags,
@@ -42,6 +43,7 @@ const NAV = [
   { to: "/teams", label: "პირები/ჯგუფები", icon: UsersRound },
   { to: "/reports", label: "რეპორტები", icon: BarChart3 },
   { to: "/telephony", label: "ტელეფონია", icon: Headset, managerOnly: true },
+  { to: "/sms", label: "SMS შეტყობინებები", icon: MessageSquare, managerOnly: true },
   { to: "/users", label: "მომხმარებლები", icon: Users, managerOnly: true },
 ] as const;
 
