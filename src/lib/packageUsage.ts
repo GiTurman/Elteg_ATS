@@ -21,10 +21,10 @@ export const callsModeShort: Record<CallsMode, string> = {
   extra_charge: "დამატებითი ღირებულებით",
 };
 
-/** სამუშაო დრო: ორშ–პარ 09:00–18:00 (თბილისი) */
+/** სამუშაო დღე: ორშ–პარ 10:00–19:00 (თბილისი) — მომსახურების პაკეტების პირობებით */
 export const WORK_DAYS = [1, 2, 3, 4, 5];
-export const WORK_FROM_H = 9;
-export const WORK_TO_H = 18;
+export const WORK_FROM_H = 10;
+export const WORK_TO_H = 19;
 const TZ_OFFSET_H = 4; // Asia/Tbilisi, ზაფხულის დროის გარეშე
 
 function tbilisi(d: Date) {
@@ -110,6 +110,15 @@ export type ClientLimitInfo = {
   calls_mode?: CallsMode | null;
   included_calls: number | null;
 };
+
+/** კლიენტის პირობა; თუ კლიენტზე მითითებული არ არის — პაკეტისა */
+export function effectiveLimit(
+  client: ClientLimitInfo,
+  pkg?: { calls_mode?: CallsMode | null; included_calls?: number | null } | null,
+): ClientLimitInfo {
+  if (client.calls_mode || client.included_calls != null) return client;
+  return { calls_mode: pkg?.calls_mode ?? null, included_calls: pkg?.included_calls ?? null };
+}
 
 export type Usage = {
   mode: CallsMode | null;

@@ -3,11 +3,13 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { clientsQuery, tariffsQuery } from "@/lib/entities";
+import { clientsQuery, formatPrice, responseText, tariffsQuery } from "@/lib/entities";
 import {
   WORK_FROM_H,
   WORK_TO_H,
   computeUsage,
+  effectiveLimit,
+  isWorkingTime,
   monthCallsQuery,
   monthKey,
   monthLabel,
@@ -35,7 +37,12 @@ export function usePackageUsage(clientIdIn: string | null | undefined, objectId?
     const objMap = new Map(
       objects.map((o) => [o.id, (o as { client_id?: string | null }).client_id ?? null]),
     );
-    return { client, pkg, month: key, usage: computeUsage(client, clientId, calls, objMap) };
+    return {
+      client,
+      pkg,
+      month: key,
+      usage: computeUsage(effectiveLimit(client, pkg), clientId, calls, objMap),
+    };
   }, [clientId, clients, packages, objects, calls, key]);
 }
 
@@ -53,7 +60,10 @@ export function PackageUsage({
   const info = usePackageUsage(clientId, objectId);
   if (!info) return null;
   const { pkg, usage: u, month } = info;
-  const sla = (pkg as { response_sla_hours?: number | null } | null)?.response_sla_hours;
+  const resp = responseText(pkg);
+  const afterNotIncluded =
+    !!pkg && pkg.response_minutes_work != null && pkg.response_minutes_after == null;
+  const offHours = !isWorkingTime();
 
   const tone =
     u.state === "exhausted" || u.state === "outside_hours"
@@ -96,7 +106,9 @@ export function PackageUsage({
     <div className={cn("rounded-md border px-2.5 py-1.5 text-left text-xs", tone, className)}>
       <div className="font-semibold">
         {pkg ? `პაკეტი: ${pkg.name}` : "პაკეტი: —"}
-        {sla ? ` · რეაგირება ${sla} სთ` : ""}
+        {pkg && pkg.price_monthly && pkg.price_list
+          ? ` · ${formatPrice(pkg.price_monthly, pkg.currency)}`
+          : ""}
         {compact ? "" : ` · ${monthLabel(month)}`}
       </div>
       <div>{main}</div>
@@ -115,7 +127,16 @@ export function PackageUsage({
           />
         </div>
       ) : null}
+      {resp ? <div className="text-[11px] opacity-90">რეაგირება: {resp}</div> : null}
+      {pkg?.entrapment_response ? (
+        <div className="text-[11px] opacity-90">გაჭედვა: {pkg.entrapment_response}</div>
+      ) : null}
       {warn ? <div className="mt-0.5 font-semibold">⚠ {warn}</div> : null}
+      {afterNotIncluded && offHours ? (
+        <div className="mt-0.5 font-semibold text-red-700 dark:text-red-300">
+          ⚠ ახლა არასამუშაო დროა — ტექნიკური გაუმართაობა პაკეტში არ შედის (გაჭედვა — 24/7)
+        </div>
+      ) : null}
       {!compact && u.planned ? (
         <div className="text-[11px] opacity-80">გეგმიური ვიზიტი ამ თვეში: {u.planned}</div>
       ) : null}

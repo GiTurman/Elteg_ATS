@@ -116,7 +116,7 @@ async function packageVars(db: Db, clientId: string | null) {
   const { data: c } = await db
     .from("clients")
     .select(
-      "name, package_id, tariff_packages:package_id(name, response_sla_hours, included_services)",
+      "name, package_id, tariff_packages:package_id(name, response_sla_hours, response_minutes_work, response_minutes_after, included_services)",
     )
     .eq("id", clientId)
     .maybeSingle();
@@ -124,12 +124,19 @@ async function packageVars(db: Db, clientId: string | null) {
   const p = (c as { tariff_packages?: unknown }).tariff_packages as {
     name?: string;
     response_sla_hours?: number | null;
+    response_minutes_work?: number | null;
+    response_minutes_after?: number | null;
     included_services?: string | null;
   } | null;
   return {
     client: (c as { name: string }).name,
     package: p?.name ?? null,
-    response: p?.response_sla_hours ?? null,
+    response:
+      p?.response_minutes_work != null
+        ? `${p.response_minutes_work} წუთი`
+        : p?.response_sla_hours != null
+          ? `${p.response_sla_hours} საათი`
+          : null,
     services: p?.included_services ?? null,
   };
 }
@@ -220,7 +227,7 @@ export async function sendStatusSms(callId: string): Promise<SendResult> {
       : null;
   const body = renderSms(tpl, {
     ...(pv ?? {}),
-    response: pv?.response ?? slaHours,
+    response: pv?.response ?? (slaHours != null ? `${slaHours} საათი` : null),
     hotline: await hotline(db),
     call_no: call.call_no,
     status: statusLabel[status],

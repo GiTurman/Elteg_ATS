@@ -18,7 +18,42 @@ export type TariffPackage = {
   sort_order: number;
   is_active: boolean;
   created_at: string;
+  // 0010 — პაკეტის პირობები
+  currency?: string | null;
+  price_list?: string | null;
+  calls_mode?: "limited" | "unlimited" | "working_hours" | "extra_charge" | null;
+  included_calls?: number | null;
+  planned_visits?: number | null;
+  after_hours_service?: boolean | null;
+  /** რეაგირება ტექნიკური გაუმართაობისას, სამუშაო დღეს (წუთი) */
+  response_minutes_work?: number | null;
+  /** არასამუშაო დროს (წუთი); null = არ შედის */
+  response_minutes_after?: number | null;
+  entrapment_response?: string | null;
 };
+
+/** პაკეტის ფასი ვალუტით */
+export function formatPrice(n: number | null | undefined, currency?: string | null) {
+  if (n == null) return "—";
+  const v = Number(n);
+  const t = Number.isInteger(v) ? v.toFixed(0) : v.toFixed(2);
+  return currency === "USD" ? `${t} $` : currency === "EUR" ? `${t} €` : `${t} ₾`;
+}
+
+/** რეაგირების დროის მოკლე ტექსტი */
+export function responseText(
+  p:
+    | Pick<TariffPackage, "response_minutes_work" | "response_minutes_after" | "response_sla_hours">
+    | null
+    | undefined,
+) {
+  if (!p) return null;
+  if (p.response_minutes_work != null) {
+    const after = p.response_minutes_after != null ? `${p.response_minutes_after} წთ` : "არ შედის";
+    return `სამუშაო დღეს ${p.response_minutes_work} წთ · არასამუშაო დროს ${after}`;
+  }
+  return p.response_sla_hours ? `${p.response_sla_hours} სთ` : null;
+}
 
 export type Client = {
   id: string;
@@ -73,10 +108,7 @@ export type IncomingCall = {
 export const tariffsQuery = queryOptions({
   queryKey: ["tariff_packages"],
   queryFn: async () => {
-    const { data, error } = await dbx
-      .from("tariff_packages")
-      .select("*")
-      .order("sort_order");
+    const { data, error } = await dbx.from("tariff_packages").select("*").order("sort_order");
     if (error) throw error;
     return (data ?? []) as TariffPackage[];
   },

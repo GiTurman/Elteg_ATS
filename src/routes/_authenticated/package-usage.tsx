@@ -30,6 +30,7 @@ import { clientsQuery, tariffsQuery } from "@/lib/entities";
 import {
   callsModeShort,
   computeUsage,
+  effectiveLimit,
   countsTowardLimit,
   monthCallsQuery,
   monthKey,
@@ -85,7 +86,8 @@ function PackageUsagePage() {
       .filter((c) => c.is_active || byClient.has(c.id))
       .map((c) => {
         const list = byClient.get(c.id) ?? [];
-        const usage: Usage = computeUsage(c, c.id, list, objMap, noon);
+        const pkg = packages.find((p) => p.id === c.package_id) ?? null;
+        const usage: Usage = computeUsage(effectiveLimit(c, pkg), c.id, list, objMap, noon);
         return {
           client: c,
           pkg: packages.find((p) => p.id === c.package_id) ?? null,

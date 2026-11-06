@@ -12,7 +12,7 @@ export function smsMobile(phone: string | null | undefined): string | null {
 export const SMS_VARS: { key: string; desc: string }[] = [
   { key: "client", desc: "კლიენტის დასახელება" },
   { key: "package", desc: "პაკეტის დასახელება" },
-  { key: "response", desc: "რეაგირების დრო (საათი)" },
+  { key: "response", desc: "რეაგირების დრო (მაგ. „60 წუთი“)" },
   { key: "services", desc: "პაკეტში შემავალი მომსახურება" },
   { key: "hotline", desc: "ცხელი ხაზის ნომერი" },
   { key: "call_no", desc: "გამოძახების ნომერი" },
@@ -108,11 +108,11 @@ export const DEFAULT_SMS_SETTINGS: SmsSettings = {
   translit: false,
   inbound_enabled: true,
   inbound_template:
-    "{client}, თქვენ სარგებლობთ „{package}“ პაკეტით. რეაგირების დრო — {response} სთ. მომსახურება: {services}. ცხელი ხაზი: {hotline}",
+    "{client}, თქვენ სარგებლობთ „{package}“ პაკეტით. რეაგირების დრო — {response}. მომსახურება: {services}. ცხელი ხაზი: {hotline}",
   inbound_unknown_template: "",
   dedupe_minutes: 60,
   status_templates: {
-    akhali: "გამოძახება №{call_no} მიღებულია. რეაგირების დრო — {response} სთ.",
+    akhali: "გამოძახება №{call_no} მიღებულია. რეაგირების დრო — {response}.",
     gzashi: "გამოძახება №{call_no}: ტექნიკოსი {technician} გზაშია — {address}.",
     shesrulebuli: "გამოძახება №{call_no} შესრულებულია. გმადლობთ!",
   },
@@ -121,7 +121,7 @@ export const DEFAULT_SMS_SETTINGS: SmsSettings = {
 export const SMS_SAMPLE_VARS = {
   client: "შპს მაგალითი",
   package: "პრემიუმი",
-  response: 2,
+  response: "60 წუთი",
   services: "24/7 ავარიული გამოძახება, თვიური მომსახურება",
   hotline: "0322077058",
   call_no: 1024,
