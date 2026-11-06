@@ -45,7 +45,8 @@ export const Route = createFileRoute("/api/public/telephony/pbx-config")({
           users.push({
             extension: p.extension,
             name: (p.full_name || p.extension).replace(/["\\\r\n;]/g, " ").slice(0, 60),
-            role: userRoles.includes("manager")
+            // ადმინი სადგურისთვის = მენეჯერი (რიგში მეორე პრიორიტეტი)
+            role: userRoles.includes("manager") || userRoles.includes("admin")
               ? "manager"
               : userRoles.includes("dispatcher")
                 ? "dispatcher"

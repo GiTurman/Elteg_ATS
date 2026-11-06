@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { isStaffRole, primaryRole } from "@/lib/domain";
 import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -447,7 +448,7 @@ function AddShiftDialog({
   const people = staff.filter((s) =>
     role === "oncall_technician"
       ? s.roles.includes("technician")
-      : s.roles.includes("dispatcher") || s.roles.includes("manager"),
+      : isStaffRole(primaryRole(s.roles)),
   );
   const list = people.length ? people : staff;
 

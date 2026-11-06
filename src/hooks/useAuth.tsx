@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
-import type { AppRole } from "@/lib/domain";
+import { isManagerRole, isStaffRole, primaryRole, type AppRole } from "@/lib/domain";
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -59,11 +59,7 @@ export function useCurrentUser() {
   const isPending =
     !!profileQuery.data &&
     (roles.length === 0 || profileQuery.data.profile?.is_active === false);
-  const role: AppRole = roles.includes("manager")
-    ? "manager"
-    : roles.includes("dispatcher")
-      ? "dispatcher"
-      : "technician";
+  const role: AppRole = primaryRole(roles);
 
   return {
     loading: loading || profileQuery.isLoading,
@@ -73,8 +69,11 @@ export function useCurrentUser() {
     profile: profileQuery.data?.profile ?? null,
     role,
     isPending,
-    isManager: !isPending && role === "manager",
-    isDispatcher: !isPending && (role === "dispatcher" || role === "manager"),
+    /** ადმინი: ტელეფონია, მომხმარებლები, SMS + ყველაფერი */
+    isAdmin: !isPending && role === "admin",
+    /** მენეჯერის უფლებები (მენეჯერი ან ადმინი) */
+    isManager: !isPending && isManagerRole(role),
+    isDispatcher: !isPending && isStaffRole(role),
     isTechnician: !isPending && role === "technician",
   };
 }

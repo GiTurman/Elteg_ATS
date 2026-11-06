@@ -14,7 +14,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { formatDateTime, isOpen, isSameDay, slaState, type ServiceCall } from "@/lib/domain";
+import {
+  formatDateTime,
+  isOpen,
+  isSameDay,
+  roleLabel,
+  slaState,
+  type ServiceCall,
+} from "@/lib/domain";
 import { pendingCallbacksQuery } from "@/lib/callcenter";
 import { callsQuery, objectsQuery, staffQuery } from "@/lib/queries";
 
@@ -90,7 +97,7 @@ function DashboardPage() {
   return (
     <AppShell
       title={`მოგესალმებით, ${profile?.full_name || "მომხმარებელო"}`}
-      subtitle={`როლი: ${role === "manager" ? "მენეჯერი" : role === "dispatcher" ? "დისპეჩერი" : "ტექნიკოსი"}`}
+      subtitle={`როლი: ${roleLabel[role]}`}
     >
       <div
         className={`grid gap-3 sm:grid-cols-2 ${isTechnician ? "xl:grid-cols-4" : "xl:grid-cols-5"}`}

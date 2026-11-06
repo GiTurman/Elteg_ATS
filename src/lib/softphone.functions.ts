@@ -30,7 +30,7 @@ export const getMySipAccount = createServerFn({ method: "POST" })
         .maybeSingle(),
       db.from("telephony_settings").select("pbx_wss_url").eq("id", 1).maybeSingle(),
     ]);
-    const isStaff = (roles ?? []).some((r) => r.role === "dispatcher" || r.role === "manager");
+    const isStaff = (roles ?? []).some((r) => r.role === "dispatcher" || r.role === "manager" || r.role === "admin");
     if (!isStaff || !profile?.is_active) return { ok: false, reason: "not_staff" };
     const wss = (settings as { pbx_wss_url?: string | null } | null)?.pbx_wss_url?.trim();
     if (!wss) return { ok: false, reason: "no_pbx" };

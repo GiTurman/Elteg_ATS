@@ -33,7 +33,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { roleLabel, type AppRole } from "@/lib/domain";
+import { primaryRole, roleLabel, type AppRole } from "@/lib/domain";
 import { dbx, teamMembersQuery, teamsQuery } from "@/lib/entities";
 import { staffQuery } from "@/lib/queries";
 
@@ -126,11 +126,7 @@ function TeamsPage() {
               </TableHeader>
               <TableBody>
                 {staff.map((p) => {
-                  const role: AppRole = p.roles.includes("manager")
-                    ? "manager"
-                    : p.roles.includes("dispatcher")
-                      ? "dispatcher"
-                      : "technician";
+                  const role: AppRole = primaryRole(p.roles);
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="text-sm font-medium">

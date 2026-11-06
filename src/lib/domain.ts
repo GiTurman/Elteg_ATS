@@ -45,7 +45,20 @@ export const ROLES: { value: AppRole; label: string }[] = [
   { value: "dispatcher", label: "დისპეჩერი" },
   { value: "technician", label: "ტექნიკოსი" },
   { value: "manager", label: "მენეჯერი" },
+  { value: "admin", label: "ადმინისტრატორი" },
 ];
+
+/** მთავარი როლი: ადმინი > მენეჯერი > დისპეჩერი > ტექნიკოსი */
+export function primaryRole(roles: readonly string[]): AppRole {
+  if (roles.includes("admin")) return "admin";
+  if (roles.includes("manager")) return "manager";
+  if (roles.includes("dispatcher")) return "dispatcher";
+  return "technician";
+}
+/** მენეჯერის უფლებები (ადმინსაც აქვს) */
+export const isManagerRole = (r: AppRole) => r === "manager" || r === "admin";
+/** ზარებს იღებს / დისპეჩერის უფლებები */
+export const isStaffRole = (r: AppRole) => r === "dispatcher" || r === "manager" || r === "admin";
 
 const toMap = <T extends string>(arr: { value: T; label: string }[]) =>
   Object.fromEntries(arr.map((i) => [i.value, i.label])) as Record<T, string>;

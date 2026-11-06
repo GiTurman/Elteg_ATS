@@ -16,8 +16,8 @@ async function rolesOf(userId: string) {
 }
 
 async function assertManager(userId: string) {
-  if (!(await rolesOf(userId)).includes("manager")) {
-    throw new Error("ეს მოქმედება მხოლოდ მენეჯერს შეუძლია");
+  if (!(await rolesOf(userId)).includes("admin")) {
+    throw new Error("ეს მოქმედება მხოლოდ ადმინისტრატორს შეუძლია");
   }
 }
 
@@ -114,7 +114,8 @@ export const notifyCallStatus = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => z.object({ callId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
     const roles = await rolesOf(context.userId);
-    const staff = roles.includes("dispatcher") || roles.includes("manager");
+    const staff =
+      roles.includes("dispatcher") || roles.includes("manager") || roles.includes("admin");
     if (!staff) {
       if (!roles.includes("technician")) return { ok: false, skipped: true };
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

@@ -1,4 +1,4 @@
--- 0006 — უსაფრთხოების რევიზია (2026-11-05)
+-- 0006 — უსაფრთხოების რევიზია (2026-11-05; 0009-ის ადმინის როლთან შეთანხმებული — გამოიყენება 0009-ის შემდეგ)
 -- ავტორი: Giorgi Turmanidze "GT"
 --
 -- 1. გათიშული (is_active = false) თანამშრომელი კარგავს ყველა წვდომას.
@@ -16,7 +16,8 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
   SELECT EXISTS (
     SELECT 1 FROM public.user_roles r
     JOIN public.profiles p ON p.id = r.user_id AND p.is_active
-    WHERE r.user_id = _user_id AND r.role = _role)
+    WHERE r.user_id = _user_id
+      AND (r.role = _role OR (_role = 'manager' AND r.role = 'admin')))
 $$;
 
 CREATE OR REPLACE FUNCTION public.is_staff(_user_id uuid)
@@ -24,7 +25,7 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
   SELECT EXISTS (
     SELECT 1 FROM public.user_roles r
     JOIN public.profiles p ON p.id = r.user_id AND p.is_active
-    WHERE r.user_id = _user_id AND r.role IN ('dispatcher','manager'))
+    WHERE r.user_id = _user_id AND r.role IN ('dispatcher','manager','admin'))
 $$;
 
 -- 2 ─────────────────────────────────────────────────────────────
@@ -51,7 +52,7 @@ CREATE OR REPLACE FUNCTION public.profiles_guard()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   -- service_role / სისტემური ტრიგერები (auth.uid() IS NULL) — თავისუფლად
-  IF auth.uid() IS NULL OR public.has_role(auth.uid(), 'manager') THEN
+  IF auth.uid() IS NULL OR public.is_admin(auth.uid()) THEN
     RETURN NEW;
   END IF;
   IF TG_OP = 'INSERT' THEN
@@ -62,7 +63,7 @@ BEGIN
      OR NEW.extension IS DISTINCT FROM OLD.extension
      OR NEW.email IS DISTINCT FROM OLD.email
      OR NEW.id IS DISTINCT FROM OLD.id THEN
-    RAISE EXCEPTION 'ამ ველის შეცვლა მხოლოდ მენეჯერს შეუძლია' USING ERRCODE = '42501';
+    RAISE EXCEPTION 'ამ ველის შეცვლა მხოლოდ ადმინისტრატორს შეუძლია' USING ERRCODE = '42501';
   END IF;
   RETURN NEW;
 END;
@@ -121,14 +122,15 @@ GRANT SELECT (id, answer_sla_seconds, main_number, pbx_wss_url, updated_at)
 GRANT UPDATE (answer_sla_seconds, main_number, pbx_wss_url, updated_at)
   ON public.telephony_settings TO authenticated;
 DROP POLICY IF EXISTS "staff update telephony_settings" ON public.telephony_settings;
-CREATE POLICY "manager update telephony_settings" ON public.telephony_settings FOR UPDATE TO authenticated
-  USING (public.has_role(auth.uid(), 'manager')) WITH CHECK (public.has_role(auth.uid(), 'manager'));
+DROP POLICY IF EXISTS "admin update telephony_settings" ON public.telephony_settings;
+CREATE POLICY "admin update telephony_settings" ON public.telephony_settings FOR UPDATE TO authenticated
+  USING (public.is_admin(auth.uid())) WITH CHECK (public.is_admin(auth.uid()));
 
 CREATE OR REPLACE FUNCTION public.get_telephony_token()
 RETURNS text LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  IF NOT public.has_role(auth.uid(), 'manager') THEN
-    RAISE EXCEPTION 'მხოლოდ მენეჯერისთვის' USING ERRCODE = '42501';
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'მხოლოდ ადმინისტრატორისთვის' USING ERRCODE = '42501';
   END IF;
   RETURN (SELECT webhook_token FROM public.telephony_settings WHERE id = 1);
 END;
@@ -140,8 +142,8 @@ CREATE OR REPLACE FUNCTION public.regenerate_telephony_token()
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE t text;
 BEGIN
-  IF NOT public.has_role(auth.uid(), 'manager') THEN
-    RAISE EXCEPTION 'მხოლოდ მენეჯერისთვის' USING ERRCODE = '42501';
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'მხოლოდ ადმინისტრატორისთვის' USING ERRCODE = '42501';
   END IF;
   t := encode(extensions.gen_random_bytes(20), 'hex');
   UPDATE public.telephony_settings SET webhook_token = t, updated_at = now() WHERE id = 1;
@@ -153,8 +155,8 @@ CREATE OR REPLACE FUNCTION public.set_operator_contact(_profile_id uuid, _extens
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE ext text := NULLIF(btrim(_extension), '');
 BEGIN
-  IF NOT public.has_role(auth.uid(), 'manager') THEN
-    RAISE EXCEPTION 'მხოლოდ მენეჯერისთვის' USING ERRCODE = '42501';
+  IF NOT public.is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'მხოლოდ ადმინისტრატორისთვის' USING ERRCODE = '42501';
   END IF;
   IF ext IS NOT NULL AND ext !~ '^[1-9][0-9]{1,3}$' THEN
     RAISE EXCEPTION 'შიდა ნომერი: 2–4 ციფრი (არა 0-ით)' USING ERRCODE = '22023';

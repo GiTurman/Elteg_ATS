@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const ROLE = z.enum(["dispatcher", "technician", "manager"]);
+const ROLE = z.enum(["dispatcher", "technician", "manager", "admin"]);
 
 /** 12-სიმბოლოიანი დროებითი პაროლი (ადვილად წასაკითხი სიმბოლოებით) */
 function tempPassword(): string {
@@ -21,10 +21,10 @@ async function assertManager(userId: string) {
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
-    .eq("role", "manager")
+    .eq("role", "admin")
     .maybeSingle();
   if (error) throw new Error("როლის შემოწმება ვერ მოხერხდა");
-  if (!data) throw new Error("ეს მოქმედება მხოლოდ მენეჯერს შეუძლია");
+  if (!data) throw new Error("ეს მოქმედება მხოლოდ ადმინისტრატორს შეუძლია");
   const { data: me } = await supabaseAdmin
     .from("profiles")
     .select("is_active")
@@ -143,8 +143,10 @@ export const updateStaffUser = createServerFn({ method: "POST" })
     ]);
     if (!before) throw new Error("თანამშრომელი ვერ მოიძებნა");
     const oldRoles = (roleRows ?? []).map((r) => r.role as string);
-    const oldRole = oldRoles.includes("manager")
-      ? "manager"
+    const oldRole = oldRoles.includes("admin")
+      ? "admin"
+      : oldRoles.includes("manager")
+        ? "manager"
       : oldRoles.includes("dispatcher")
         ? "dispatcher"
         : oldRoles.includes("technician")
@@ -152,10 +154,10 @@ export const updateStaffUser = createServerFn({ method: "POST" })
           : "none";
 
     if (self && (data.role !== oldRole || !data.is_active)) {
-      throw new Error("საკუთარ როლს ან სტატუსს ვერ შეცვლით — სთხოვეთ სხვა მენეჯერს");
+      throw new Error("საკუთარ როლს ან სტატუსს ვერ შეცვლით — სთხოვეთ სხვა ადმინისტრატორს");
     }
-    if (oldRole === "manager" && (data.role !== "manager" || !data.is_active)) {
-      const { data: mgrs } = await admin.from("user_roles").select("user_id").eq("role", "manager");
+    if (oldRole === "admin" && (data.role !== "admin" || !data.is_active)) {
+      const { data: mgrs } = await admin.from("user_roles").select("user_id").eq("role", "admin");
       const ids = (mgrs ?? []).map((m) => m.user_id).filter((id) => id !== data.userId);
       const { count } = ids.length
         ? await admin
@@ -164,7 +166,7 @@ export const updateStaffUser = createServerFn({ method: "POST" })
             .in("id", ids)
             .eq("is_active", true)
         : { count: 0 };
-      if (!count) throw new Error("სისტემაში მინიმუმ ერთი აქტიური მენეჯერი უნდა დარჩეს");
+      if (!count) throw new Error("სისტემაში მინიმუმ ერთი აქტიური ადმინისტრატორი უნდა დარჩეს");
     }
     if (data.extension && data.extension !== before.extension) {
       const { data: taken } = await admin

@@ -34,7 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useCurrentUser } from "@/hooks/useAuth";
-import { roleLabel, type AppRole } from "@/lib/domain";
+import { primaryRole, roleLabel, type AppRole } from "@/lib/domain";
 import { staffQuery, type StaffMember } from "@/lib/queries";
 import { createStaffUser, resetStaffPassword, updateStaffUser } from "@/lib/staff.functions";
 
@@ -49,7 +49,7 @@ type Credentials = { title: string; email: string; password: string };
 
 function UsersPage() {
   const queryClient = useQueryClient();
-  const { isManager, loading, userId } = useCurrentUser();
+  const { isAdmin: isManager, loading, userId } = useCurrentUser();
   const { data: staff = [] } = useQuery(staffQuery);
   const [addOpen, setAddOpen] = useState(false);
   const [creds, setCreds] = useState<Credentials | null>(null);
@@ -75,7 +75,7 @@ function UsersPage() {
     return (
       <AppShell title="მომხმარებლები">
         <p className="py-8 text-center text-sm text-muted-foreground">
-          ეს გვერდი ხელმისაწვდომია მხოლოდ მენეჯერისთვის.
+          ეს გვერდი ხელმისაწვდომია მხოლოდ ადმინისტრატორისთვის.
         </p>
       </AppShell>
     );
@@ -106,13 +106,7 @@ function UsersPage() {
           </TableHeader>
           <TableBody>
             {staff.map((u) => {
-              const current: AppRole | "" = u.roles.includes("manager")
-                ? "manager"
-                : u.roles.includes("dispatcher")
-                  ? "dispatcher"
-                  : u.roles.includes("technician")
-                    ? "technician"
-                    : "";
+              const current: AppRole | "" = u.roles.length ? primaryRole(u.roles) : "";
               return (
                 <TableRow key={u.id}>
                   <TableCell className="text-sm font-medium">{u.full_name || "—"}</TableCell>
@@ -289,6 +283,7 @@ function AddStaffDialog({
                 <SelectItem value="dispatcher">ოპერატორი / დისპეჩერი</SelectItem>
                 <SelectItem value="technician">ტექნიკოსი</SelectItem>
                 <SelectItem value="manager">მენეჯერი (ხელმძღვანელი)</SelectItem>
+                <SelectItem value="admin">ადმინისტრატორი</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -360,18 +355,22 @@ function CredentialsDialog({ creds, onClose }: { creds: Credentials | null; onCl
 }
 
 /** რას აკეთებს თითოეული როლი სისტემაში (რედაქტირების ფანჯარაში ჩანს) */
+const STAFF: AppRole[] = ["dispatcher", "manager", "admin"];
+const MGR: AppRole[] = ["manager", "admin"];
 const ROLE_FUNCTIONS: { label: string; roles: AppRole[] }[] = [
-  { label: "ზარების მიღება აპიდან (ტელეფონი)", roles: ["dispatcher", "manager"] },
-  { label: "გამავალი ზარი / გადარეკვა", roles: ["dispatcher", "manager"] },
-  { label: "გამოძახებების შექმნა და რედაქტირება", roles: ["dispatcher", "manager"] },
-  { label: "ტექნიკოსის დანიშვნა, გრაფიკი", roles: ["dispatcher", "manager"] },
-  { label: "კლიენტები და ობიექტები", roles: ["dispatcher", "manager"] },
-  { label: "ზარების ისტორია, ჩანაწერები, KPI", roles: ["dispatcher", "manager"] },
-  { label: "ცვლების გრაფიკი", roles: ["dispatcher", "manager"] },
+  { label: "ზარების მიღება აპიდან (ტელეფონი)", roles: STAFF },
+  { label: "გამავალი ზარი / გადარეკვა", roles: STAFF },
+  { label: "გამოძახებების შექმნა და რედაქტირება", roles: STAFF },
+  { label: "ტექნიკოსის დანიშვნა, გრაფიკი", roles: STAFF },
+  { label: "კლიენტების / ობიექტების დამატება", roles: STAFF },
+  { label: "კლიენტების / ობიექტების რედაქტირება", roles: MGR },
+  { label: "ზარების ისტორია, ჩანაწერები, KPI", roles: STAFF },
+  { label: "ცვლების გრაფიკი, პაკეტების კონტროლი", roles: STAFF },
   { label: "საკუთარი გამოძახებები და სტატუსის შეცვლა", roles: ["technician"] },
-  { label: "მომხმარებლების მართვა", roles: ["manager"] },
-  { label: "ტელეფონიის / სადგურის პარამეტრები", roles: ["manager"] },
-  { label: "გამოძახების წაშლა", roles: ["manager"] },
+  { label: "გამოძახების წაშლა", roles: MGR },
+  { label: "მომხმარებლების მართვა", roles: ["admin"] },
+  { label: "ტელეფონიის / სადგურის პარამეტრები", roles: ["admin"] },
+  { label: "SMS შეტყობინებები", roles: ["admin"] },
 ];
 
 const ROLE_OPTIONS: { value: AppRole | "none"; label: string; hint: string }[] = [
@@ -379,7 +378,12 @@ const ROLE_OPTIONS: { value: AppRole | "none"; label: string; hint: string }[] =
   {
     value: "manager",
     label: "მენეჯერი (ხელმძღვანელი)",
-    hint: "ზარი მოდის, თუ ოპერატორი თავისუფალი არ არის",
+    hint: "ყველაფერი, გარდა ტელეფონიის, მომხმარებლებისა და SMS-ის",
+  },
+  {
+    value: "admin",
+    label: "ადმინისტრატორი",
+    hint: "სრული წვდომა, მათ შორის ტელეფონია, მომხმარებლები, SMS",
   },
   { value: "technician", label: "ტექნიკოსი", hint: "ხედავს მხოლოდ თავის გამოძახებებს" },
   { value: "none", label: "როლის გარეშე (წვდომა შეჩერებულია)", hint: "სისტემას ვერ ხედავს" },
@@ -397,13 +401,7 @@ function EditStaffDialog({
   const queryClient = useQueryClient();
   const updateFn = useServerFn(updateStaffUser);
   const roleOf = (m: StaffMember): AppRole | "none" =>
-    m.roles.includes("manager")
-      ? "manager"
-      : m.roles.includes("dispatcher")
-        ? "dispatcher"
-        : m.roles.includes("technician")
-          ? "technician"
-          : "none";
+    m.roles.length ? primaryRole(m.roles) : "none";
   const [form, setForm] = useState({
     full_name: "",
     email: "",
@@ -453,7 +451,7 @@ function EditStaffDialog({
   });
 
   const roleChanged = member ? form.role !== roleOf(member) : false;
-  const callRole = form.role === "dispatcher" || form.role === "manager";
+  const callRole = form.role !== "none" && form.role !== "technician";
 
   return (
     <Dialog open={!!member} onOpenChange={(o) => !o && close()}>

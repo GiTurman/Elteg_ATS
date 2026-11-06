@@ -61,7 +61,7 @@ const empty = {
 
 function ClientsPage() {
   const queryClient = useQueryClient();
-  const { isDispatcher } = useCurrentUser();
+  const { isDispatcher, isManager } = useCurrentUser();
   const { data: clients = [] } = useQuery(clientsQuery);
   const { data: packages = [] } = useQuery(tariffsQuery);
 
@@ -192,8 +192,8 @@ function ClientsPage() {
             {filtered.map((c) => (
               <TableRow
                 key={c.id}
-                className={isDispatcher ? "cursor-pointer" : undefined}
-                onClick={isDispatcher ? () => openEdit(c) : undefined}
+                className={isManager ? "cursor-pointer" : undefined}
+                onClick={isManager ? () => openEdit(c) : undefined}
               >
                 <TableCell className="max-w-[220px]">
                   <div className="truncate text-sm font-medium">{c.name}</div>

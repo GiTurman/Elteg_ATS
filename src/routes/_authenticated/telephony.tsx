@@ -165,7 +165,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function TelephonyPage() {
   const queryClient = useQueryClient();
-  const { isManager, loading } = useCurrentUser();
+  const { isAdmin: isManager, loading } = useCurrentUser();
   const { data: settings } = useQuery({ ...settingsQuery, enabled: isManager });
   const { data: tokenValue = "" } = useQuery({ ...tokenQuery, enabled: isManager });
   const { data: clients = [] } = useQuery(clientsQuery);
@@ -221,7 +221,7 @@ function TelephonyPage() {
     return (
       <AppShell title="ტელეფონია">
         <p className="py-8 text-center text-sm text-muted-foreground">
-          ეს გვერდი ხელმისაწვდომია მხოლოდ მენეჯერისთვის.
+          ეს გვერდი ხელმისაწვდომია მხოლოდ ადმინისტრატორისთვის.
         </p>
       </AppShell>
     );

@@ -75,7 +75,7 @@ function Preview({ tpl, translit }: { tpl: string; translit: boolean }) {
 
 function SmsPage() {
   const queryClient = useQueryClient();
-  const { isManager, loading } = useCurrentUser();
+  const { isAdmin: isManager, loading } = useCurrentUser();
   const getFn = useServerFn(getSmsSettings);
   const saveFn = useServerFn(saveSmsSettings);
   const keyFn = useServerFn(setSmsApiKey);
@@ -176,7 +176,7 @@ function SmsPage() {
     return (
       <AppShell title="SMS შეტყობინებები">
         <p className="py-8 text-center text-sm text-muted-foreground">
-          ეს გვერდი ხელმისაწვდომია მხოლოდ მენეჯერისთვის.
+          ეს გვერდი ხელმისაწვდომია მხოლოდ ადმინისტრატორისთვის.
         </p>
       </AppShell>
     );

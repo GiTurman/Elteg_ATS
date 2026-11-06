@@ -52,7 +52,7 @@ import {
   toDateInput,
   type CallLog,
 } from "@/lib/callcenter";
-import { downloadCsv, formatDateTime } from "@/lib/domain";
+import { downloadCsv, formatDateTime, isStaffRole, primaryRole } from "@/lib/domain";
 import { clientsQuery, dbx } from "@/lib/entities";
 import { objectsQuery, staffQuery } from "@/lib/queries";
 import { normalizeGePhone } from "@/lib/telephony";
@@ -330,7 +330,7 @@ function CallHistoryPage() {
   }
 
   const operators = staff.filter(
-    (s) => s.roles.includes("dispatcher") || s.roles.includes("manager"),
+    (s) => isStaffRole(primaryRole(s.roles)),
   );
 
   return (

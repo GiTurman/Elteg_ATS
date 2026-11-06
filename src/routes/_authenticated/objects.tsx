@@ -35,6 +35,7 @@ import { useCurrentUser } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { formatDate } from "@/lib/domain";
+import { clientsQuery } from "@/lib/entities";
 import { objectsQuery } from "@/lib/queries";
 
 export const Route = createFileRoute("/_authenticated/objects")({
@@ -62,6 +63,8 @@ const emptyObject = {
   client_phone: "",
   maintenance_interval_months: "1",
   next_due_date: "",
+  client_id: "",
+  notes: "",
 };
 
 function addMonths(date: Date, months: number) {
@@ -72,12 +75,37 @@ function addMonths(date: Date, months: number) {
 
 function ObjectsPage() {
   const queryClient = useQueryClient();
-  const { isDispatcher } = useCurrentUser();
+  const { isDispatcher, isManager } = useCurrentUser();
   const { data: objects = [] } = useQuery(objectsQuery);
+  const { data: clients = [] } = useQuery(clientsQuery);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [filter, setFilter] = useState<Filter>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ ...emptyObject });
+
+  const openNew = () => {
+    setEditingId(null);
+    setForm({ ...emptyObject });
+    setDialogOpen(true);
+  };
+  const openEdit = (o: (typeof objects)[number]) => {
+    setEditingId(o.id);
+    setForm({
+      name: o.name ?? "",
+      address: o.address ?? "",
+      elevator_code: o.elevator_code ?? "",
+      serial_number: o.serial_number ?? "",
+      manufacturer: o.manufacturer ?? "",
+      client_name: o.client_name ?? "",
+      client_phone: o.client_phone ?? "",
+      maintenance_interval_months: String(o.maintenance_interval_months ?? 1),
+      next_due_date: o.next_due_date ?? "",
+      client_id: (o as { client_id?: string | null }).client_id ?? "",
+      notes: o.notes ?? "",
+    });
+    setDialogOpen(true);
+  };
 
   const today = new Date();
   const soonLimit = new Date();
@@ -103,7 +131,7 @@ function ObjectsPage() {
       if (!form.name.trim() || !form.address.trim() || !form.elevator_code.trim()) {
         throw new Error("დასახელება, მისამართი და ლიფტის კოდი სავალდებულოა");
       }
-      const payload: TablesInsert<"objects"> = {
+      const payload: TablesInsert<"objects"> & { client_id?: string | null } = {
         name: form.name.trim(),
         address: form.address.trim(),
         elevator_code: form.elevator_code.trim(),
@@ -114,15 +142,20 @@ function ObjectsPage() {
         maintenance_interval_months:
           Number(form.maintenance_interval_months) || 1,
         next_due_date: form.next_due_date || null,
+        notes: form.notes.trim() || null,
+        client_id: form.client_id || null,
       };
-      const { error } = await supabase.from("objects").insert(payload);
+      const { error } = editingId
+        ? await supabase.from("objects").update(payload as never).eq("id", editingId)
+        : await supabase.from("objects").insert(payload as never);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["objects"] });
       setDialogOpen(false);
+      toast.success(editingId ? "ობიექტი განახლდა" : "ობიექტი დაემატა");
       setForm({ ...emptyObject });
-      toast.success("ობიექტი დაემატა");
+      setEditingId(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -153,7 +186,7 @@ function ObjectsPage() {
       subtitle={`სულ: ${objects.length} · ვადაგადაცილებული: ${overdueCount}`}
       actions={
         isDispatcher ? (
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Button size="sm" onClick={openNew}>
             <Plus className="size-4" /> ობიექტის დამატება
           </Button>
         ) : null
@@ -192,7 +225,8 @@ function ObjectsPage() {
               return (
                 <TableRow
                   key={o.id}
-                  className={overdue ? "bg-destructive/5" : undefined}
+                  className={`${overdue ? "bg-destructive/5" : ""} ${isManager ? "cursor-pointer" : ""}`}
+                  onClick={isManager ? () => openEdit(o) : undefined}
                 >
                   <TableCell className="max-w-[240px]">
                     <div className="truncate text-sm font-medium">{o.name}</div>
@@ -226,12 +260,13 @@ function ObjectsPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() =>
+                        onClick={(e) => {
+                          e.stopPropagation();
                           markDone.mutate({
                             id: o.id,
                             interval: o.maintenance_interval_months,
-                          })
-                        }
+                          });
+                        }}
                         disabled={markDone.isPending}
                       >
                         შესრულდა
@@ -258,7 +293,7 @@ function ObjectsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>ობიექტის დამატება</DialogTitle>
+            <DialogTitle>{editingId ? "ობიექტის რედაქტირება" : "ობიექტის დამატება"}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3">
             <div className="grid gap-1.5">
@@ -345,6 +380,39 @@ function ObjectsPage() {
               </div>
             </div>
             <div className="grid gap-1.5">
+              <Label>კლიენტი (ხელშეკრულება / პაკეტი)</Label>
+              <Select
+                value={form.client_id || "none"}
+                onValueChange={(v) => {
+                  const c = clients.find((x) => x.id === v);
+                  setForm((f) => ({
+                    ...f,
+                    client_id: v === "none" ? "" : v,
+                    client_name: c && !f.client_name ? c.name : f.client_name,
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="none">— არ არის მიბმული —</SelectItem>
+                  {clients.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-1.5">
+              <Label>შენიშვნა</Label>
+              <Input
+                value={form.notes}
+                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              />
+            </div>
+            <div className="grid gap-1.5">
               <Label>შემდეგი პრევენციის თარიღი</Label>
               <Input
                 type="date"
@@ -363,7 +431,7 @@ function ObjectsPage() {
               onClick={() => createObject.mutate()}
               disabled={createObject.isPending}
             >
-              {createObject.isPending ? "ინახება…" : "დამატება"}
+              {createObject.isPending ? "ინახება…" : editingId ? "შენახვა" : "დამატება"}
             </Button>
           </DialogFooter>
         </DialogContent>

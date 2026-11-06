@@ -64,6 +64,13 @@
       "when": 1793820000000,
       "tag": "0008_package_call_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793900000000,
+      "tag": "0009_admin_role",
+      "breakpoints": true
     }
   ]
 }

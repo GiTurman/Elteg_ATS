@@ -44,15 +44,15 @@ const NAV = [
   { to: "/package-usage", label: "პაკეტების კონტროლი", icon: PackageCheck, staffOnly: true },
   { to: "/teams", label: "პირები/ჯგუფები", icon: UsersRound },
   { to: "/reports", label: "რეპორტები", icon: BarChart3 },
-  { to: "/telephony", label: "ტელეფონია", icon: Headset, managerOnly: true },
-  { to: "/sms", label: "SMS შეტყობინებები", icon: MessageSquare, managerOnly: true },
-  { to: "/users", label: "მომხმარებლები", icon: Users, managerOnly: true },
+  { to: "/telephony", label: "ტელეფონია", icon: Headset, adminOnly: true },
+  { to: "/sms", label: "SMS შეტყობინებები", icon: MessageSquare, adminOnly: true },
+  { to: "/users", label: "მომხმარებლები", icon: Users, adminOnly: true },
 ] as const;
 
 const TECH_ALLOWED = ["/dashboard", "/calls", "/schedule"];
 
 function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
-  const { isManager, isTechnician, isDispatcher } = useCurrentUser();
+  const { isManager, isAdmin, isTechnician, isDispatcher } = useCurrentUser();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: pending = [] } = useQuery({
     ...pendingCallbacksQuery,
@@ -64,6 +64,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
     <nav className="flex flex-col gap-0.5 p-2">
       {NAV.filter((i) => {
         if ("managerOnly" in i && i.managerOnly && !isManager) return false;
+        if ("adminOnly" in i && i.adminOnly && !isAdmin) return false;
         if ("staffOnly" in i && i.staffOnly && isTechnician) return false;
         if (isTechnician && !TECH_ALLOWED.includes(i.to)) return false;
         return true;
